@@ -1,7 +1,20 @@
 from functools import lru_cache
+from urllib.parse import urlparse
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Railway injects PORT at runtime; ${{MinIO.PORT}} is not shareable and stays empty.
+RAILWAY_PRIVATE_S3_PORT = 8080
+
+
+def normalize_s3_endpoint(url: str) -> str:
+    parsed = urlparse(url)
+    hostname = parsed.hostname or ""
+    missing_port = parsed.port is None
+    if missing_port and hostname.endswith(".railway.internal"):
+        return f"{parsed.scheme}://{hostname}:{RAILWAY_PRIVATE_S3_PORT}"
+    return url
 
 
 def as_sqlalchemy_url(url: str) -> str:
@@ -33,6 +46,13 @@ class Settings(BaseSettings):
     def _psycopg_url(cls, value: object) -> object:
         if isinstance(value, str):
             return as_sqlalchemy_url(value)
+        return value
+
+    @field_validator("s3_endpoint", mode="before")
+    @classmethod
+    def _s3_endpoint(cls, value: object) -> object:
+        if isinstance(value, str):
+            return normalize_s3_endpoint(value)
         return value
 
 

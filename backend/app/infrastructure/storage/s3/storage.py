@@ -15,16 +15,26 @@ from app.infrastructure.config.settings import Settings, get_settings
 class S3Storage:
     def __init__(self, settings: Settings | None = None) -> None:
         self._settings = settings or get_settings()
+        self._bucket_ready = False
         self._client: BaseClient = boto3.client(
             "s3",
             endpoint_url=self._settings.s3_endpoint,
             aws_access_key_id=self._settings.s3_access_key,
             aws_secret_access_key=self._settings.s3_secret_key,
             region_name=self._settings.s3_region,
-            config=Config(s3={"addressing_style": "path"}),
+            config=Config(
+                s3={"addressing_style": "path"},
+                connect_timeout=10,
+                read_timeout=30,
+                retries={"max_attempts": 3, "mode": "standard"},
+                request_checksum_calculation="when_required",
+                response_checksum_validation="when_required",
+            ),
         )
 
     def ensure_bucket(self) -> None:
+        if self._bucket_ready:
+            return
         bucket = self._settings.s3_bucket
         try:
             self._client.head_bucket(Bucket=bucket)
@@ -47,6 +57,7 @@ class S3Storage:
                 }
             ),
         )
+        self._bucket_ready = True
 
     def public_url(self, key: str) -> str:
         endpoint = self._settings.s3_public_endpoint.rstrip("/")
