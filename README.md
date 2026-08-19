@@ -4,6 +4,9 @@ Prueba técnica: API FastAPI + panel React para una inmobiliaria. Specs en [`spe
 
 El operador carga, lista, filtra y edita departamentos en venta. No hay autenticación ni DELETE físico: la baja es `disponible = false`.
 
+<img width="1920" height="1440" alt="238_1x_shots_so" src="https://github.com/user-attachments/assets/d4a98112-62ab-4658-ad63-fffb3f546702" />
+
+
 ## Local
 
 Copiá el env de ejemplo y levantá Postgres, MinIO y la API:
