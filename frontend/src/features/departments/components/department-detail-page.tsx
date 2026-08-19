@@ -87,7 +87,9 @@ function DepartmentDetailBody({ department }: { department: DepartmentDetail }) 
             pending={inquiryMutation.isPending}
             apiError={inquiryMapped?.message}
             apiFieldErrors={inquiryMapped?.fields}
-            onSubmit={(body) => inquiryMutation.mutateAsync(body)}
+            onSubmit={async (body) => {
+              await inquiryMutation.mutateAsync(body)
+            }}
           />
         ) : null}
       </DepartmentInquiries>
