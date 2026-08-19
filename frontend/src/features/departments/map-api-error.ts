@@ -18,7 +18,7 @@ export function mapApiError(error: unknown): MappedApiError {
     }
   }
   if (typeof error.detail === 'string') {
-    return { message: error.detail, fields: {} }
+    return { message: humanizeDomain(error.detail), fields: {} }
   }
   if (!Array.isArray(error.detail)) {
     return {
@@ -52,4 +52,14 @@ function humanizePydantic(message: string): string {
   if (message.includes('at least 3')) return 'El título debe tener al menos 3 caracteres.'
   if (message.includes('at most 120')) return 'El título no puede superar 120 caracteres.'
   return message
+}
+
+function humanizeDomain(detail: string): string {
+  if (detail.includes('available departments')) {
+    return 'Solo se pueden registrar consultas en departamentos disponibles.'
+  }
+  if (detail.includes('Inquiry email')) return 'El email no es válido.'
+  if (detail.includes('Inquiry name is required')) return 'El nombre es obligatorio.'
+  if (detail.includes('Inquiry message is required')) return 'El mensaje es obligatorio.'
+  return detail
 }

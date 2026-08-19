@@ -198,3 +198,84 @@ def test_detail_includes_inquiries_list_only_has_count() -> None:
         assert "consultas" not in listed
     finally:
         app.dependency_overrides.clear()
+
+
+def test_post_inquiry_returns_201_and_updates_totals() -> None:
+    client, _, _ = _client()
+    try:
+        created = client.post("/departamentos", json=BODY).json()
+        response = client.post(
+            f"/departamentos/{created['id']}/consultas",
+            json={
+                "nombre": "Ana Pérez",
+                "email": "ana@example.com",
+                "mensaje": "¿Sigue disponible?",
+            },
+        )
+        assert response.status_code == 201
+        data = response.json()
+        assert data["nombre"] == "Ana Pérez"
+        assert data["email"] == "ana@example.com"
+        assert data["mensaje"] == "¿Sigue disponible?"
+        assert "fecha" in data
+        assert set(data) == {"nombre", "email", "mensaje", "fecha"}
+
+        detail = client.get(f"/departamentos/{created['id']}").json()
+        assert detail["consultas"][0]["nombre"] == "Ana Pérez"
+        listed = client.get("/departamentos").json()["items"][0]
+        assert listed["total_consultas"] == 1
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_post_inquiry_missing_department_404() -> None:
+    client, _, _ = _client()
+    try:
+        response = client.post(
+            f"/departamentos/{uuid4()}/consultas",
+            json={
+                "nombre": "Ana",
+                "email": "ana@example.com",
+                "mensaje": "Hola",
+            },
+        )
+        assert response.status_code == 404
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_post_inquiry_unavailable_422() -> None:
+    client, _, _ = _client()
+    try:
+        created = client.post(
+            "/departamentos", json={**BODY, "disponible": False}
+        ).json()
+        response = client.post(
+            f"/departamentos/{created['id']}/consultas",
+            json={
+                "nombre": "Ana",
+                "email": "ana@example.com",
+                "mensaje": "Hola",
+            },
+        )
+        assert response.status_code == 422
+        assert "available" in response.json()["detail"]
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_post_inquiry_invalid_email_422() -> None:
+    client, _, _ = _client()
+    try:
+        created = client.post("/departamentos", json=BODY).json()
+        response = client.post(
+            f"/departamentos/{created['id']}/consultas",
+            json={
+                "nombre": "Ana",
+                "email": "no-es-email",
+                "mensaje": "Hola",
+            },
+        )
+        assert response.status_code == 422
+    finally:
+        app.dependency_overrides.clear()

@@ -1,11 +1,13 @@
+import type { ReactNode } from 'react'
 import { formatInquiryDate } from '../format.ts'
 import type { InquiryDetail } from '../types.ts'
 
 type Props = {
   consultas: InquiryDetail[]
+  children?: ReactNode
 }
 
-export function DepartmentInquiries({ consultas }: Props) {
+export function DepartmentInquiries({ consultas, children }: Props) {
   return (
     <section>
       <h2 className="font-display text-xl font-bold">Consultas</h2>
@@ -24,6 +26,7 @@ export function DepartmentInquiries({ consultas }: Props) {
           ))}
         </ul>
       )}
+      {children}
     </section>
   )
 }

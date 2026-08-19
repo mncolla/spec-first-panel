@@ -41,7 +41,10 @@ class PostgresDepartmentRepository:
         row = self._session.get(
             DepartmentModel,
             department.id,
-            options=(selectinload(DepartmentModel.images),),
+            options=(
+                selectinload(DepartmentModel.images),
+                selectinload(DepartmentModel.inquiries),
+            ),
         )
         if row is None:
             row = entity_to_model(department)
@@ -57,6 +60,7 @@ class PostgresDepartmentRepository:
             row.lng = department.lng
             row.available = department.available
             row.images.clear()
+            row.inquiries.clear()
             self._session.flush()
             for image in department.images:
                 row.images.append(
@@ -66,6 +70,17 @@ class PostgresDepartmentRepository:
                         url=image.url,
                         position=image.position,
                         storage_key=image.storage_key,
+                    )
+                )
+            for inquiry in department.inquiries:
+                row.inquiries.append(
+                    InquiryModel(
+                        id=inquiry.id,
+                        department_id=department.id,
+                        name=inquiry.name,
+                        email=inquiry.email,
+                        message=inquiry.message,
+                        created_at=inquiry.created_at,
                     )
                 )
         self._session.flush()

@@ -3,12 +3,13 @@ import type { ReactNode } from 'react'
 import { isNotFoundError } from '../../../lib/api.ts'
 import { formatPrice } from '../format.ts'
 import { useDepartment } from '../hooks/use-department.ts'
-import { useUpdateDepartment } from '../hooks/use-department-mutations.ts'
+import { useCreateInquiry, useUpdateDepartment } from '../hooks/use-department-mutations.ts'
 import { mapApiError } from '../map-api-error.ts'
 import type { DepartmentDetail } from '../types.ts'
 import { DepartmentForm } from './department-form.tsx'
 import { DepartmentGallery } from './department-gallery.tsx'
 import { DepartmentInquiries } from './department-inquiries.tsx'
+import { DepartmentInquiryRecorder } from './department-inquiry-recorder.tsx'
 
 export function DepartmentDetailPage() {
   const [, params] = useRoute('/departamentos/:id')
@@ -59,7 +60,9 @@ export function DepartmentDetailPage() {
 
 function DepartmentDetailBody({ department }: { department: DepartmentDetail }) {
   const mutation = useUpdateDepartment(department.id)
+  const inquiryMutation = useCreateInquiry(department.id)
   const mapped = mutation.isError ? mapApiError(mutation.error) : undefined
+  const inquiryMapped = inquiryMutation.isError ? mapApiError(inquiryMutation.error) : undefined
   const saved = mutation.data ?? department
 
   return (
@@ -78,7 +81,16 @@ function DepartmentDetailBody({ department }: { department: DepartmentDetail }) 
       </header>
 
       <DepartmentGallery urls={saved.imagenes} title={saved.titulo} />
-      <DepartmentInquiries consultas={saved.consultas} />
+      <DepartmentInquiries consultas={department.consultas}>
+        {saved.disponible ? (
+          <DepartmentInquiryRecorder
+            pending={inquiryMutation.isPending}
+            apiError={inquiryMapped?.message}
+            apiFieldErrors={inquiryMapped?.fields}
+            onSubmit={(body) => inquiryMutation.mutateAsync(body)}
+          />
+        ) : null}
+      </DepartmentInquiries>
 
       <section>
         <h2 className="font-display text-xl font-bold">Editar</h2>

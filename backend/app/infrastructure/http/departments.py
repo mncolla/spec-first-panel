@@ -7,10 +7,12 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Query, status
 from app.application.image_input import parse_image_write
 from app.application.ports.object_storage import ObjectStorage
 from app.application.use_cases.create_department import create_department
+from app.application.use_cases.create_inquiry import create_inquiry
 from app.application.use_cases.get_department import get_department
 from app.application.use_cases.list_departments import list_departments
 from app.application.use_cases.update_department import update_department
 from app.domain.entities.department import Department
+from app.domain.entities.inquiry import Inquiry
 from app.domain.repositories.department_repository import DepartmentRepository
 from app.infrastructure.container import get_department_repository, get_object_storage
 from app.infrastructure.http.schemas import (
@@ -19,6 +21,7 @@ from app.infrastructure.http.schemas import (
     DepartmentListResponse,
     DepartmentWrite,
     InquiryDetail,
+    InquiryWrite,
 )
 
 router = APIRouter(prefix="/departamentos", tags=["departamentos"])
@@ -59,16 +62,17 @@ def to_detail(department: Department) -> DepartmentDetail:
         lng=department.lng,
         disponible=department.available,
         imagenes=[image.url for image in department.images],
-        consultas=[
-            InquiryDetail(
-                nombre=inquiry.name,
-                email=inquiry.email,
-                mensaje=inquiry.message,
-                fecha=inquiry.created_at,
-            )
-            for inquiry in department.inquiries
-        ],
+        consultas=[to_inquiry_detail(inquiry) for inquiry in department.inquiries],
         created_at=department.created_at,
+    )
+
+
+def to_inquiry_detail(inquiry: Inquiry) -> InquiryDetail:
+    return InquiryDetail(
+        nombre=inquiry.name,
+        email=inquiry.email,
+        mensaje=inquiry.message,
+        fecha=inquiry.created_at,
     )
 
 
@@ -172,3 +176,19 @@ def update_item(
         images=[parse_image_write(item) for item in body.imagenes],
     )
     return to_detail(updated)
+
+
+@router.post("/{department_id}/consultas", status_code=status.HTTP_201_CREATED)
+def create_inquiry_item(
+    department_id: UUID,
+    body: InquiryWrite,
+    repo: DepartmentRepository = Depends(get_department_repository),
+) -> InquiryDetail:
+    inquiry = create_inquiry(
+        repo,
+        department_id,
+        name=body.nombre,
+        email=body.email,
+        message=body.mensaje,
+    )
+    return to_inquiry_detail(inquiry)

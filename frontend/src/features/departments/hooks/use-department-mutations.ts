@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { createDepartment, updateDepartment } from '../services/departments.ts'
-import type { DepartmentWrite } from '../types.ts'
+import { createDepartment, createInquiry, updateDepartment } from '../services/departments.ts'
+import type { DepartmentWrite, InquiryWrite } from '../types.ts'
 
 export function useCreateDepartment() {
   const queryClient = useQueryClient()
@@ -19,6 +19,17 @@ export function useUpdateDepartment(id: string) {
     mutationFn: (body: DepartmentWrite) => updateDepartment(id, body),
     onSuccess: async (updated) => {
       queryClient.setQueryData(['department', id], updated)
+      await queryClient.invalidateQueries({ queryKey: ['departments'] })
+    },
+  })
+}
+
+export function useCreateInquiry(id: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (body: InquiryWrite) => createInquiry(id, body),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['department', id] })
       await queryClient.invalidateQueries({ queryKey: ['departments'] })
     },
   })

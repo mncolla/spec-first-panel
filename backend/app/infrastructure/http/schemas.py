@@ -10,6 +10,7 @@ from app.domain.entities.department import (
     MAX_TITLE_LENGTH,
     MIN_TITLE_LENGTH,
 )
+from app.domain.entities.inquiry import MAX_INQUIRY_MESSAGE_LENGTH, MAX_INQUIRY_NAME_LENGTH
 
 
 class DepartmentWrite(BaseModel):
@@ -62,6 +63,20 @@ class DepartmentListResponse(BaseModel):
     pagina: int
     cantidad: int
     total: int
+
+
+class InquiryWrite(BaseModel):
+    nombre: str = Field(min_length=1, max_length=MAX_INQUIRY_NAME_LENGTH)
+    email: str = Field(min_length=1)
+    mensaje: str = Field(min_length=1, max_length=MAX_INQUIRY_MESSAGE_LENGTH)
+
+    @field_validator("nombre", "email", "mensaje")
+    @classmethod
+    def strip_required(cls, value: str) -> str:
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("cannot be blank")
+        return stripped
 
 
 class InquiryDetail(BaseModel):

@@ -155,3 +155,27 @@ def test_persists_inquiries_on_detail_and_count_on_list(session: Session) -> Non
     assert total == 1
     assert items[0].inquiries == ()
     assert items[0].total_inquiries == 3
+
+
+def test_update_persists_added_inquiry(session: Session) -> None:
+    repo = PostgresDepartmentRepository(session)
+    department = _create()
+    repo.add(department)
+    session.flush()
+
+    fetched = repo.get(department.id)
+    assert fetched is not None
+    fetched.add_inquiry(
+        Inquiry.create(name="Ana", email="ana@example.com", message="Me interesa")
+    )
+    repo.update(fetched)
+    session.flush()
+
+    reloaded = repo.get(department.id)
+    assert reloaded is not None
+    assert [inquiry.name for inquiry in reloaded.inquiries] == ["Ana"]
+    assert reloaded.total_inquiries == 1
+
+    items, _ = repo.list(page=1, page_size=10)
+    assert items[0].inquiries == ()
+    assert items[0].total_inquiries == 1

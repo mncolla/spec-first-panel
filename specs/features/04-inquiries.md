@@ -18,8 +18,8 @@ A department has many inquiries (name, email, message, date). Detail includes th
 
 **Out**
 
-- Public `POST /consultas` (not requested)
-- Dedicated inquiry UI (they show on detail, feature 09)
+- Public `POST /consultas` (not requested; write path is nested POST in [feature 11](11-create-inquiry.md))
+- Dedicated inquiry UI (they show on detail, feature 09; the record form is feature 11)
 - Bulk generation (feature 06)
 
 ## JSON contract (detail)

@@ -4,6 +4,8 @@ import type {
   DepartmentListFilters,
   DepartmentListResponse,
   DepartmentWrite,
+  InquiryDetail,
+  InquiryWrite,
 } from '../types.ts'
 
 export function listDepartments(
@@ -44,4 +46,8 @@ export function updateDepartment(
   body: DepartmentWrite,
 ): Promise<DepartmentDetail> {
   return apiSend<DepartmentDetail>('PUT', `/departamentos/${id}`, body)
+}
+
+export function createInquiry(id: string, body: InquiryWrite): Promise<InquiryDetail> {
+  return apiSend<InquiryDetail>('POST', `/departamentos/${id}/consultas`, body)
 }

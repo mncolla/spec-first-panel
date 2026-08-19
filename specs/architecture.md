@@ -42,7 +42,8 @@ backend/
 │   │       ├── create_department.py
 │   │       ├── list_departments.py
 │   │       ├── get_department.py
-│   │       └── update_department.py
+│   │       ├── update_department.py
+│   │       └── create_inquiry.py
 │   ├── infrastructure/
 │   │   ├── container.py                   # composition root
 │   │   ├── config/settings.py
@@ -80,7 +81,8 @@ Rules:
 - Validation: Pydantic covers types/required (`422`). Domain is the source of truth; the handler maps `DomainError` to `422`. `404` = not found.
 - List filters: composable SQLAlchemy expressions. No `text()` / concatenated SQL.
 - `POST /departamentos` returns `202` with the resource in the body. Row persist is synchronous; image upload may run in `BackgroundTasks`.
-- Code and files in English. No `consultas/` or `imagenes/` packages: `domain/entities/inquiry.py` / `image.py`.
+- `POST /departamentos/{id}/consultas` returns `201` with the created inquiry. Recording an inquiry is a command on the `Department` aggregate (`add_inquiry`), not a separate bounded context.
+- Code and files in English. No `consultas/` or `imagenes/` packages: `domain/entities/inquiry.py` / `image.py`. Frontend inquiry UI stays in `features/departments/`.
 - DB tables `departments`, `images`, `inquiries`. HTTP: `imagenes`, `consultas`.
 
 ## Frontend — feature-oriented
@@ -124,6 +126,10 @@ Server-side upload to MinIO. The panel sends data URLs (or existing `http(s)` UR
 ## Address
 
 Nominatim / OpenStreetMap in the browser (no paid API key). Persist `direccion` (text), `lat`, and `lng`. The backend does not call the map provider.
+
+## Inquiries
+
+The operator records them on the detail screen. Nested `POST /departamentos/{id}/consultas`; only when `disponible` is true. Delisted → `DomainError` (`422`), not `409`. Seed (feature 06) still generates history; PUT on the department does not create or delete inquiries.
 
 ## Errors
 

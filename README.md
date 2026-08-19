@@ -103,7 +103,7 @@ Detalle de JSON: [`specs/features/02-departments-api.md`](specs/features/02-depa
 
 **Ruteo del panel.** wouter. `/` listado, `/departamentos/nuevo` alta, `/departamentos/:id` ficha + edición.
 
-**Consultas.** No hay `POST /consultas`. El seed las carga; el operador las lee en el detalle.
+**Consultas.** El operador las registra en el detalle (`POST /departamentos/{id}/consultas` → `201`) solo si el departamento está disponible. El seed también carga historial. No hay `POST /consultas` suelto ni auth.
 
 ## Stack
 

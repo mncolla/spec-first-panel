@@ -121,6 +121,15 @@ class Department:
         self.inquiry_count = None
         self._validate()
 
+    def add_inquiry(self, inquiry: Inquiry) -> Inquiry:
+        if not self.available:
+            raise DomainError(
+                "Inquiries can only be recorded on available departments"
+            )
+        self.inquiries = _normalize_inquiries((*self.inquiries, inquiry))
+        self.inquiry_count = None
+        return inquiry
+
     def _validate(self) -> None:
         if not MIN_TITLE_LENGTH <= len(self.title) <= MAX_TITLE_LENGTH:
             raise DomainError(

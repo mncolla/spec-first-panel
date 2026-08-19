@@ -104,3 +104,36 @@ def test_inquiries_are_ordered_by_date_desc() -> None:
     )
     assert [inquiry.name for inquiry in department.inquiries] == ["Nueva", "Vieja"]
     assert department.total_inquiries == 2
+
+
+def test_add_inquiry_appends_and_orders_by_date_desc() -> None:
+    now = datetime(2026, 8, 18, tzinfo=timezone.utc)
+    department = _create(
+        inquiries=[
+            Inquiry.create(
+                name="Vieja",
+                email="a@x.com",
+                message="primera",
+                created_at=now - timedelta(days=1),
+            ),
+        ]
+    )
+    added = department.add_inquiry(
+        Inquiry.create(
+            name="Nueva",
+            email="b@x.com",
+            message="última",
+            created_at=now,
+        )
+    )
+    assert added.name == "Nueva"
+    assert [inquiry.name for inquiry in department.inquiries] == ["Nueva", "Vieja"]
+    assert department.total_inquiries == 2
+
+
+def test_add_inquiry_rejects_unavailable_department() -> None:
+    department = _create(available=False)
+    with pytest.raises(DomainError, match="available"):
+        department.add_inquiry(
+            Inquiry.create(name="Ana", email="ana@example.com", message="Hola")
+        )

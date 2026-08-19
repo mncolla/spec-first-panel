@@ -19,7 +19,7 @@ Dedicated screen (not a drawer/modal) with the department, gallery, and in-place
 
 **Out**
 
-- Creating inquiries from the panel
+- Creating inquiries from the panel ([feature 11](11-create-inquiry.md))
 - Playwright E2E (optional in 10)
 
 ## Checkpoints

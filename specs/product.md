@@ -15,6 +15,7 @@ Lebane operator. Auth is out of scope for this delivery.
 - Department CRUD (create, list, detail, update)
 - Images in S3-compatible object storage (MinIO locally)
 - Inquiries on a department (name, email, message, date)
+- Operator records an inquiry from an interested person (panel form + nested POST)
 - Address autocomplete with persisted coordinates
 - Seed of ≥ 500 departments
 - Panel: list, create, detail/edit, filters
@@ -24,7 +25,8 @@ Lebane operator. Auth is out of scope for this delivery.
 
 - Authentication / roles
 - Physical DELETE (delisting is `disponible = false`)
-- Public inquiry endpoint (the operator reads them on the detail; seed loads them)
+- Public listing site or top-level `POST /consultas`
+- Inquiries on a delisted department (`disponible = false`)
 - Cloud deploy (optional extra, feature 10)
 
 ## Product rules
@@ -42,6 +44,10 @@ The brief only requires a 5-photo cap on create (frontend). The rest is ours:
 | `disponible` | boolean, default `true` |
 | `imagenes` | 0–5 on create; the backend rejects more than 5 |
 | Delist / relist | `disponible` + PUT only; no DELETE |
+| `nombre` (inquiry) | required, 1–120 |
+| `email` (inquiry) | required, `local@domain.tld` |
+| `mensaje` (inquiry) | required, 1–4000 |
+| Record inquiry | only if `disponible = true` |
 
 ## API contract (summary)
 
@@ -52,6 +58,7 @@ HTTP paths and JSON keys follow the brief (Spanish). Code and database are Engli
 - `GET /departamentos` → `200` paginated + filters `disponible`, `precio_min`, `precio_max`, `metros_min`, `metros_max`.
 - `GET /departamentos/{id}` → `200` (detail) or `404`.
 - `PUT /departamentos/{id}` → `200` (detail) or `404`. Full replacement of editable fields (same body as POST). No PATCH or DELETE.
+- `POST /departamentos/{id}/consultas` → `201` with the created inquiry (`nombre`, `email`, `mensaje`, `fecha`). `404` if the department is missing. `422` if the body is invalid or the department is not available. No PATCH/DELETE on inquiries.
 
 Pagination: `pagina` (from 1, default 1), `cantidad` (default 20, max 100). Envelope `{ items, pagina, cantidad, total }`. Stable order: `created_at` desc, `id` desc.
 
@@ -60,7 +67,7 @@ Detail: full department + `imagenes` + `consultas`.
 
 `lat` / `lng` are optional (`direccion` text is required). The price filter does not split by currency.
 
-JSON shapes live in [feature 02](features/02-departments-api.md).
+JSON shapes live in [feature 02](features/02-departments-api.md) (departments) and [feature 11](features/11-create-inquiry.md) (inquiry write).
 
 ## Features
 
@@ -76,6 +83,7 @@ JSON shapes live in [feature 02](features/02-departments-api.md).
 | 08 | [Panel create](features/08-panel-create.md) | done |
 | 09 | [Panel detail and edit](features/09-panel-detail.md) | done |
 | 10 | [Quality](features/10-quality.md) | done |
+| 11 | [Record inquiry](features/11-create-inquiry.md) | done |
 
 Statuses: `created` · `in_progress` · `done`. Update this table when a feature changes status.
 

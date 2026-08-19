@@ -2,6 +2,8 @@ export const MIN_TITLE_LENGTH = 3
 export const MAX_TITLE_LENGTH = 120
 export const MAX_DESCRIPTION_LENGTH = 4000
 export const MAX_DEPARTMENT_IMAGES = 5
+export const MAX_INQUIRY_NAME_LENGTH = 120
+export const MAX_INQUIRY_MESSAGE_LENGTH = 4000
 
 export type Currency = 'USD' | 'ARS'
 
@@ -40,6 +42,12 @@ export type InquiryDetail = {
   email: string
   mensaje: string
   fecha: string
+}
+
+export type InquiryWrite = {
+  nombre: string
+  email: string
+  mensaje: string
 }
 
 export type DepartmentDetail = {
