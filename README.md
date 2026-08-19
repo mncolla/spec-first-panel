@@ -106,6 +106,42 @@ Detalle de JSON: [`specs/features/02-departments-api.md`](specs/features/02-depa
 
 FastAPI 0.14x, Python 3.12, SQLAlchemy 2, Alembic, React 19, Vite, Tailwind 4, TanStack Query, Vitest.
 
+## Railway
+
+Un proyecto, cuatro servicios:
+
+| Servicio | Origen | Notas |
+|---|---|---|
+| Postgres | plugin de Railway | `DATABASE_URL` (el backend lo pasa a `postgresql+psycopg://`) |
+| MinIO | imagen `minio/minio` + volume en `/data` | start: `minio server /data --address :$PORT` |
+| API | `backend/` (`Dockerfile`) | `PORT` lo pone Railway |
+| Frontend | `frontend/` (`Dockerfile`) | `VITE_API_URL` se hornea en el build |
+
+Variables (referencias entre servicios):
+
+```
+# API
+DATABASE_URL=${{Postgres.DATABASE_URL}}
+S3_ENDPOINT=http://${{MinIO.RAILWAY_PRIVATE_DOMAIN}}:${{MinIO.PORT}}
+S3_PUBLIC_ENDPOINT=https://${{MinIO.RAILWAY_PUBLIC_DOMAIN}}
+S3_ACCESS_KEY=<mismo MINIO_ROOT_USER>
+S3_SECRET_KEY=<mismo MINIO_ROOT_PASSWORD>
+S3_BUCKET=departments
+CORS_ORIGINS=https://${{Frontend.RAILWAY_PUBLIC_DOMAIN}}
+
+# Frontend (build)
+VITE_API_URL=https://${{Api.RAILWAY_PUBLIC_DOMAIN}}
+VITE_NOMINATIM_CONTACT=<email de contacto Nominatim>
+```
+
+MinIO: `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` (≥ 8 caracteres) y un volume montado en `/data`. Generá dominio público para API, frontend y MinIO (las fotos se cargan desde el browser).
+
+Seed una vez que la API esté arriba:
+
+```bash
+railway run -s api -- python -m app.seed
+```
+
 ## Extra no incluido
 
-Auth, deploy en la nube, E2E Playwright. Si se publica una demo, la URL va acá.
+Auth y E2E Playwright. Si hay demo, la URL va acá.
