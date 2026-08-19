@@ -2,7 +2,7 @@
 
 Prueba técnica: API FastAPI + panel React para una inmobiliaria. Specs en [`specs/product.md`](specs/product.md) y [`specs/architecture.md`](specs/architecture.md).
 
-El operador carga, lista, filtra y edita departamentos en venta. No hay autenticación ni DELETE físico: la baja es `disponible = false`.
+El operador carga, lista, filtra y edita departamentos en venta. El panel pide sesión (JWT Bearer). No hay DELETE físico: la baja es `disponible = false`.
 
 <img width="1920" height="1440" alt="238_1x_shots_so" src="https://github.com/user-attachments/assets/d4a98112-62ab-4658-ad63-fffb3f546702" />
 
@@ -35,6 +35,8 @@ cd frontend && npm install && npm run dev
 ```
 
 http://localhost:5173 habla con la API en `:8000` (CORS habilitado). `VITE_API_URL` cambia el origin si hace falta.
+
+Sin sesión el panel abre `/ingresar`. El admin de desarrollo es `admin@lebane.local` / `lebanelebane` (`OPERATOR_EMAIL` / `OPERATOR_PASSWORD`).
 
 ### Seed
 
@@ -80,6 +82,10 @@ Español, como el PDF. IDs UUID.
 
 | Método | Path | Status |
 |---|---|---|
+| POST | `/sesion` | `200` `{ email, rol, token }` |
+| GET | `/sesion` | `200` `{ email, rol }` o `401` |
+| DELETE | `/sesion` | `204` (revoca) |
+| POST | `/operadores` | `201` agente (solo admin) |
 | POST | `/departamentos` | `202` + detalle |
 | GET | `/departamentos` | `200` paginado |
 | GET | `/departamentos/{id}` | `200` o `404` |
@@ -100,11 +106,13 @@ Detalle de JSON: [`specs/features/02-departments-api.md`](specs/features/02-depa
 
 **Storage.** MinIO S3-compatible local. El front manda bytes (data URL) o URLs ya públicas. El backend sube a un bucket `departments` y devuelve URLs con `S3_PUBLIC_ENDPOINT`. Una URL rota no tumba el panel: hay placeholder.
 
-**Acceso a datos.** Backend hexagonal / DDD por capas: entidades y contratos de repositorio en `domain/`, casos de uso en `application/`, adapters por tecnología en `infrastructure/` (`database/postgres`, `storage/s3`, `http`). El `container` arma las dependencias. HTTP en español, código en inglés. Sin SQL concatenado. Frontend por features (`departments/`, `address/`).
+**Acceso a datos.** Backend hexagonal / DDD por capas: entidades y contratos de repositorio en `domain/`, casos de uso en `application/`, adapters por tecnología en `infrastructure/` (`database/postgres`, `storage/s3`, `security`, `http`). El `container` arma las dependencias. HTTP en español, código en inglés. Sin SQL concatenado. Frontend por features (`departments/`, `address/`, `auth/`).
 
-**Ruteo del panel.** wouter. `/` listado, `/departamentos/nuevo` alta, `/departamentos/:id` ficha + edición.
+**Ruteo del panel.** wouter. `/ingresar` login, `/` listado, `/departamentos/nuevo` alta, `/departamentos/:id` ficha + edición. Un `401` limpia el token y vuelve al login.
 
-**Consultas.** El operador las registra en el detalle (`POST /departamentos/{id}/consultas` → `201`) solo si el departamento está disponible. El seed también carga historial. No hay `POST /consultas` suelto ni auth.
+**Sesión.** Bearer JWT (HS256). `DELETE /sesion` borra la fila en `sessions` (el `jti` del token es ese id). Roles: `admin` (único, bootstrap de env) y `agente`. El hasher es PBKDF2 de la stdlib. `/health` y el seed CLI siguen públicos.
+
+**Consultas.** El operador las registra en el detalle (`POST /departamentos/{id}/consultas` → `201`) solo si el departamento está disponible. El seed también carga historial. No hay `POST /consultas` suelto.
 
 ## Stack
 
@@ -138,6 +146,9 @@ S3_ACCESS_KEY=${{MinIO.MINIO_ROOT_USER}}
 S3_SECRET_KEY=${{MinIO.MINIO_ROOT_PASSWORD}}
 S3_BUCKET=departments
 CORS_ORIGINS=https://${{Frontend.RAILWAY_PUBLIC_DOMAIN}}
+OPERATOR_EMAIL=admin@lebane.local
+OPERATOR_PASSWORD=<clave ≥ 8>
+SESSION_SECRET=<secreto JWT>
 
 # Frontend (build)
 VITE_API_URL=https://${{Api.RAILWAY_PUBLIC_DOMAIN}}
@@ -156,4 +167,4 @@ railway ssh -s api -- python -m app.seed
 
 ## Extra no incluido
 
-Auth y E2E Playwright. Si hay demo, la URL va acá.
+E2E Playwright. Si hay demo, la URL va acá.

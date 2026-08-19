@@ -135,7 +135,7 @@ To delist: PUT the full resource with `disponible: false`.
 ## Layers
 
 - `domain/entities/department.py`: entity + invariants.
-- `application/use_cases/`: one use case per file; in-memory adapters in `infrastructure/database/memory/` and `infrastructure/storage/memory/`.
+- `application/use_cases/departments/`: one use case per file; in-memory adapters in `infrastructure/database/memory/` and `infrastructure/storage/memory/`.
 - `infrastructure/database/postgres/` + Alembic.
 - `infrastructure/http/departments.py` + `schemas.py`, mounted from `main.py` via `container.py`.
 - Exception handlers: domain `422`, not found `404`.

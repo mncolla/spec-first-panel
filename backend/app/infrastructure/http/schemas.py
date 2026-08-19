@@ -91,6 +91,47 @@ class InquiryDetail(BaseModel):
         return aware.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+class SessionWrite(BaseModel):
+    email: str = Field(min_length=1)
+    clave: str = Field(min_length=8)
+
+    @field_validator("email", "clave")
+    @classmethod
+    def strip_session(cls, value: str) -> str:
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("cannot be blank")
+        return stripped
+
+
+class SessionPublic(BaseModel):
+    email: str
+    rol: str
+
+
+class SessionCreated(SessionPublic):
+    token: str
+
+
+class OperatorWrite(BaseModel):
+    email: str = Field(min_length=1)
+    clave: str = Field(min_length=8)
+    rol: str = Field(pattern="^agente$")
+
+    @field_validator("email", "clave")
+    @classmethod
+    def strip_operator(cls, value: str) -> str:
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("cannot be blank")
+        return stripped
+
+
+class OperatorDetail(BaseModel):
+    email: str
+    rol: str
+
+
 class DepartmentDetail(BaseModel):
     id: UUID
     titulo: str

@@ -11,7 +11,7 @@ The operator records an inquiry from an interested person on the department deta
 **In**
 
 - `Department.add_inquiry` on the aggregate (do not reuse `replace_inquiries` for a single add)
-- Use case `create_inquiry` in `application/use_cases/`
+- Use case `create_inquiry` in `application/use_cases/departments/`
 - `POST /departamentos/{id}/consultas` → `201` with the created inquiry
 - Domain: only `disponible = true`; otherwise `DomainError` → `422`
 - Missing department → `404`
@@ -24,7 +24,7 @@ The operator records an inquiry from an interested person on the department deta
 
 - `POST /consultas` as a top-level resource
 - `consultas/` packages (backend or frontend)
-- Auth / rate limit
+- Auth / rate limit (auth is [feature 12](12-auth.md); rate limit stays out)
 - Creating inquiries on `disponible = false`
 - Dedicated inquiry screen or route
 - Changing or deleting inquiries

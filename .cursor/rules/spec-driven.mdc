@@ -15,11 +15,11 @@ Before coding, read `specs/product.md` and `specs/architecture.md`. Work **one**
 4. `done` only if checkpoints are closed and “How to test” works. Update `product.md`.
 5. Commits in [Conventional Commits](https://www.conventionalcommits.org/): `type(scope): summary`. One commit per coherent change; do not mix features.
 
-Types: `feat` `fix` `docs` `refactor` `test` `chore`. Scope = module or feature (`infra`, `departments`, `images`, `panel`). Example: `feat(departments): paginated list with filters`.
+Types: `feat` `fix` `docs` `refactor` `test` `chore`. Scope = module or feature (`infra`, `departments`, `images`, `inquiries`, `auth`, `panel`). Example: `feat(departments): paginated list with filters`.
 
 ## Do not
 
-- Invent auth, DELETE, or extra packages (`consultas/`, `imagenes/`). They are entities in `domain/entities/` (`inquiry.py`, `image.py`).
+- Invent physical DELETE, extra packages (`consultas/`, `imagenes/`), or auth beyond `specs/features/12-auth.md`. Inquiries/images are entities in `domain/entities/` (`inquiry.py`, `image.py`). Operators live in `operator.py`.
 - SQL in strings / `text()` for filters. Use the SQLAlchemy query builder.
 - Put one feature’s logic in a global `src/components/`.
 - Mark `done` because it compiles. It has to be testable.

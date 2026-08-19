@@ -3,9 +3,12 @@ from uuid import UUID, uuid4
 
 from fastapi.testclient import TestClient
 
+from app.application.use_cases.auth.get_current_operator import CurrentAuth
 from app.domain.entities.inquiry import Inquiry
+from app.domain.entities.operator import Operator, OperatorRole
 from app.infrastructure.container import get_department_repository, get_object_storage
 from app.infrastructure.database.memory.department_repository import InMemoryDepartmentRepository
+from app.infrastructure.http.deps import require_operator
 from app.infrastructure.storage.memory.storage import InMemoryStorage
 from app.main import app
 
@@ -28,11 +31,21 @@ BODY = {
 }
 
 
+def _auth() -> CurrentAuth:
+    operator = Operator.create(
+        email="admin@lebane.local",
+        password_hash="hashed",
+        role=OperatorRole.ADMIN,
+    )
+    return CurrentAuth(operator=operator, session_id=operator.id)
+
+
 def _client() -> tuple[TestClient, InMemoryDepartmentRepository, InMemoryStorage]:
     repo = InMemoryDepartmentRepository()
     storage = InMemoryStorage()
     app.dependency_overrides[get_department_repository] = lambda: repo
     app.dependency_overrides[get_object_storage] = lambda: storage
+    app.dependency_overrides[require_operator] = _auth
     return TestClient(app), repo, storage
 
 

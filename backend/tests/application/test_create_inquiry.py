@@ -5,9 +5,9 @@ from uuid import uuid4
 import pytest
 
 from app.application.exceptions import NotFoundError
-from app.application.use_cases.create_department import create_department
-from app.application.use_cases.create_inquiry import create_inquiry
-from app.application.use_cases.list_departments import list_departments
+from app.application.use_cases.departments.create_department import create_department
+from app.application.use_cases.departments.create_inquiry import create_inquiry
+from app.application.use_cases.departments.list_departments import list_departments
 from app.domain.entities.inquiry import Inquiry
 from app.domain.exceptions import DomainError
 from app.infrastructure.database.memory.department_repository import InMemoryDepartmentRepository

@@ -9,6 +9,8 @@ from app.infrastructure.database.postgres.models import (  # noqa: F401
     DepartmentModel,
     ImageModel,
     InquiryModel,
+    OperatorModel,
+    OperatorSessionModel,
 )
 
 config = context.config

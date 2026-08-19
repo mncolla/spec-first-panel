@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     s3_region: str = "us-east-1"
     s3_public_endpoint: str = "http://localhost:9000"
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+    operator_email: str = "admin@lebane.local"
+    operator_password: str = "lebanelebane"
+    session_secret: str = "dev-session-secret-change-me-now"
 
     @field_validator("database_url", mode="before")
     @classmethod

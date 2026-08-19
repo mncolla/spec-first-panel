@@ -1,0 +1,14 @@
+from typing import Protocol
+from uuid import UUID
+
+from app.domain.entities.operator import Operator, OperatorRole
+
+
+class OperatorRepository(Protocol):
+    def add(self, operator: Operator) -> Operator: ...
+
+    def get(self, operator_id: UUID) -> Operator | None: ...
+
+    def get_by_email(self, email: str) -> Operator | None: ...
+
+    def get_by_role(self, role: OperatorRole) -> Operator | None: ...

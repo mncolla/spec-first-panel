@@ -20,6 +20,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.domain.entities.department import Currency, Department
 from app.domain.entities.image import DepartmentImage
 from app.domain.entities.inquiry import Inquiry
+from app.domain.entities.operator import Operator, OperatorRole
+from app.domain.entities.operator_session import OperatorSession
 from app.infrastructure.database.postgres.db import Base
 
 
@@ -82,6 +84,35 @@ class InquiryModel(Base):
     )
 
     department: Mapped[DepartmentModel] = relationship(back_populates="inquiries")
+
+
+class OperatorModel(Base):
+    __tablename__ = "operators"
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
+    email: Mapped[str] = mapped_column(String(254), nullable=False, unique=True)
+    password_hash: Mapped[str] = mapped_column(String(512), nullable=False)
+    role: Mapped[str] = mapped_column(String(16), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    sessions: Mapped[list["OperatorSessionModel"]] = relationship(
+        back_populates="operator",
+        cascade="all, delete-orphan",
+    )
+
+
+class OperatorSessionModel(Base):
+    __tablename__ = "sessions"
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
+    operator_id: Mapped[UUID] = mapped_column(
+        ForeignKey("operators.id", ondelete="CASCADE"), nullable=False
+    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    operator: Mapped[OperatorModel] = relationship(back_populates="sessions")
 
 
 def model_to_entity(
@@ -181,4 +212,51 @@ def _inquiry_to_entity(row: InquiryModel) -> Inquiry:
         email=row.email,
         message=row.message,
         created_at=created,
+    )
+
+
+def operator_to_entity(row: OperatorModel) -> Operator:
+    created = row.created_at
+    if created.tzinfo is None:
+        created = created.replace(tzinfo=UTC)
+    return Operator(
+        id=row.id,
+        email=row.email,
+        password_hash=row.password_hash,
+        role=OperatorRole(row.role),
+        created_at=created,
+    )
+
+
+def operator_to_model(operator: Operator) -> OperatorModel:
+    return OperatorModel(
+        id=operator.id,
+        email=operator.email,
+        password_hash=operator.password_hash,
+        role=operator.role.value,
+        created_at=operator.created_at,
+    )
+
+
+def session_to_entity(row: OperatorSessionModel) -> OperatorSession:
+    expires = row.expires_at
+    created = row.created_at
+    if expires.tzinfo is None:
+        expires = expires.replace(tzinfo=UTC)
+    if created.tzinfo is None:
+        created = created.replace(tzinfo=UTC)
+    return OperatorSession(
+        id=row.id,
+        operator_id=row.operator_id,
+        expires_at=expires,
+        created_at=created,
+    )
+
+
+def session_to_model(session: OperatorSession) -> OperatorSessionModel:
+    return OperatorSessionModel(
+        id=session.id,
+        operator_id=session.operator_id,
+        expires_at=session.expires_at,
+        created_at=session.created_at,
     )

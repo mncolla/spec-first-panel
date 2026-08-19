@@ -5,10 +5,10 @@ import pytest
 
 from app.application.exceptions import NotFoundError
 from app.application.image_input import ImageInput, parse_image_write
-from app.application.use_cases.create_department import create_department
-from app.application.use_cases.get_department import get_department
-from app.application.use_cases.list_departments import list_departments
-from app.application.use_cases.update_department import update_department
+from app.application.use_cases.departments.create_department import create_department
+from app.application.use_cases.departments.get_department import get_department
+from app.application.use_cases.departments.list_departments import list_departments
+from app.application.use_cases.departments.update_department import update_department
 from app.domain.exceptions import DomainError
 from app.infrastructure.database.memory.department_repository import InMemoryDepartmentRepository
 from app.infrastructure.storage.memory.storage import InMemoryStorage

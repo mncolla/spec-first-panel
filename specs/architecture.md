@@ -30,20 +30,32 @@ backend/
 │   │   ├── entities/
 │   │   │   ├── department.py
 │   │   │   ├── image.py
-│   │   │   └── inquiry.py
+│   │   │   ├── inquiry.py
+│   │   │   └── operator.py
 │   │   ├── repositories/
-│   │   │   └── department_repository.py   # Protocol
+│   │   │   ├── department_repository.py   # Protocol
+│   │   │   └── operator_repository.py     # Protocol
 │   │   └── exceptions.py
 │   ├── application/
 │   │   ├── exceptions.py
 │   │   ├── ports/
-│   │   │   └── object_storage.py          # Protocol + store images
+│   │   │   ├── object_storage.py          # Protocol + store images
+│   │   │   ├── password_hasher.py
+│   │   │   └── token_issuer.py
 │   │   └── use_cases/
-│   │       ├── create_department.py
-│   │       ├── list_departments.py
-│   │       ├── get_department.py
-│   │       ├── update_department.py
-│   │       └── create_inquiry.py
+│   │       ├── departments/
+│   │       │   ├── create_department.py
+│   │       │   ├── list_departments.py
+│   │       │   ├── get_department.py
+│   │       │   ├── update_department.py
+│   │       │   └── create_inquiry.py
+│   │       ├── auth/
+│   │       │   ├── login.py
+│   │       │   ├── logout.py
+│   │       │   └── get_current_operator.py
+│   │       └── operators/
+│   │           ├── create_operator.py
+│   │           └── bootstrap_admin.py
 │   ├── infrastructure/
 │   │   ├── container.py                   # composition root
 │   │   ├── config/settings.py
@@ -51,14 +63,20 @@ backend/
 │   │   │   ├── postgres/
 │   │   │   │   ├── db.py
 │   │   │   │   ├── models.py
-│   │   │   │   └── department_repository.py
+│   │   │   │   ├── department_repository.py
+│   │   │   │   ├── operator_repository.py
+│   │   │   │   └── session_repository.py
 │   │   │   └── memory/
-│   │   │       └── department_repository.py
+│   │   │       ├── department_repository.py
+│   │   │       ├── operator_repository.py
+│   │   │       └── session_repository.py
 │   │   ├── storage/
 │   │   │   ├── s3/storage.py
 │   │   │   └── memory/storage.py
+│   │   ├── security/                      # PBKDF2, JWT HS256
 │   │   └── http/                          # driving adapter
 │   │       ├── departments.py
+│   │       ├── session.py
 │   │       └── schemas.py                 # Pydantic; Spanish JSON (brief)
 │   └── seed/                              # local tooling, not a use case
 │       ├── catalog.py
@@ -74,16 +92,18 @@ backend/
 Rules:
 
 - `domain/` does not import FastAPI, SQLAlchemy, Pydantic, or S3. Entities, invariants, repository contracts.
-- `application/` orchestrates use cases against domain repositories. Object storage port: `application/ports/object_storage.py`. Tests use `memory/` adapters.
+- `application/` orchestrates use cases against domain repositories, grouped by concern (`departments/`, `auth/`, `operators/`). Object storage port: `application/ports/object_storage.py`. Tests use `memory/` adapters.
 - `app/seed/` is local tooling (`python -m app.seed`), not a panel use case.
 - `infrastructure/` implements ports, grouped by technology. Integration tests hit Postgres (`DATABASE_URL`). The HTTP driving adapter lives in `infrastructure/http/`.
 - `infrastructure/http/` is HTTP only: parse, status codes, Spanish DTO ↔ English entity. It does not build SQLAlchemy sessions by hand: it asks `container` for dependencies.
-- Validation: Pydantic covers types/required (`422`). Domain is the source of truth; the handler maps `DomainError` to `422`. `404` = not found.
+- Validation: Pydantic covers types/required (`422`). Domain is the source of truth; the handler maps `DomainError` to `422`. `404` = not found. Missing/invalid session → `401`. Authenticated but forbidden → `403`.
 - List filters: composable SQLAlchemy expressions. No `text()` / concatenated SQL.
 - `POST /departamentos` returns `202` with the resource in the body. Row persist is synchronous; image upload may run in `BackgroundTasks`.
 - `POST /departamentos/{id}/consultas` returns `201` with the created inquiry. Recording an inquiry is a command on the `Department` aggregate (`add_inquiry`), not a separate bounded context.
-- Code and files in English. No `consultas/` or `imagenes/` packages: `domain/entities/inquiry.py` / `image.py`. Frontend inquiry UI stays in `features/departments/`.
-- DB tables `departments`, `images`, `inquiries`. HTTP: `imagenes`, `consultas`.
+- Auth is a driving adapter: `require_operator` runs in HTTP before department use cases. Those use cases do not take an `Operator`.
+- Sessions: JWT Bearer (`jti` = `sessions.id`). `DELETE /sesion` deletes the row so the token no longer authenticates.
+- Code and files in English. No `consultas/` or `imagenes/` packages: `domain/entities/inquiry.py` / `image.py`. Frontend inquiry UI stays in `features/departments/`. Auth UI lives in `features/auth/`.
+- DB tables `departments`, `images`, `inquiries`, `operators`, `sessions`. HTTP: `imagenes`, `consultas`, `sesion`, `operadores`, `rol`.
 
 ## Frontend — feature-oriented
 
@@ -97,10 +117,15 @@ frontend/src/
     │   ├── hooks/
     │   ├── services/
     │   └── types.ts
-    └── address/
+    ├── address/
+    │   ├── components/
+    │   ├── hooks/
+    │   └── services/
+    └── auth/
         ├── components/
         ├── hooks/
-        └── services/
+        ├── services/
+        └── types.ts
 ```
 
 Rules:
@@ -115,9 +140,10 @@ Routes:
 
 | Path | Screen |
 |---|---|
-| `/` | list |
-| `/departamentos/nuevo` | create |
-| `/departamentos/:id` | detail + edit |
+| `/ingresar` | login (public) |
+| `/` | list (session required) |
+| `/departamentos/nuevo` | create (session required) |
+| `/departamentos/:id` | detail + edit (session required) |
 
 ## Images
 
@@ -131,6 +157,10 @@ Nominatim / OpenStreetMap in the browser (no paid API key). Persist `direccion` 
 
 The operator records them on the detail screen. Nested `POST /departamentos/{id}/consultas`; only when `disponible` is true. Delisted → `DomainError` (`422`), not `409`. Seed (feature 06) still generates history; PUT on the department does not create or delete inquiries.
 
+## Auth
+
+Bearer JWT (not cookies). One unique `admin` bootstrapped from env; `agente` created by admin via `POST /operadores`. Session rows make `DELETE /sesion` a real revoke. `/health` stays open.
+
 ## Errors
 
-Backend: consistent handlers (`422` validation, `404` not found, `500` unexpected). Front: `pending` / `error` / `empty` on every screen that hits the API.
+Backend: consistent handlers (`422` validation, `401` unauthenticated, `403` forbidden, `404` not found, `500` unexpected). Front: `pending` / `error` / `empty` on every screen that hits the API. `401` on the panel → `/ingresar`.

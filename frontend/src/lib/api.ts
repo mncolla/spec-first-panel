@@ -1,3 +1,5 @@
+import { clearSessionToken, getSessionToken } from '../features/auth/token.ts'
+
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
 export class ApiError extends Error {
@@ -20,6 +22,15 @@ export function isNotFoundError(error: unknown): boolean {
   return isApiError(error) && error.status === 404
 }
 
+export function isUnauthorizedError(error: unknown): boolean {
+  return isApiError(error) && error.status === 401
+}
+
+function authHeaders(): HeadersInit {
+  const token = getSessionToken()
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
 export async function apiGet<T>(path: string, params?: Record<string, string>): Promise<T> {
   const url = new URL(path, API_URL)
   if (params) {
@@ -27,7 +38,11 @@ export async function apiGet<T>(path: string, params?: Record<string, string>): 
       url.searchParams.set(key, value)
     }
   }
-  return parseResponse<T>(await fetch(url))
+  return parseResponse<T>(
+    await fetch(url, {
+      headers: authHeaders(),
+    }),
+  )
 }
 
 export async function apiSend<T>(method: 'POST' | 'PUT', path: string, body: unknown): Promise<T> {
@@ -35,14 +50,30 @@ export async function apiSend<T>(method: 'POST' | 'PUT', path: string, body: unk
   return parseResponse<T>(
     await fetch(url, {
       method,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify(body),
     }),
   )
 }
 
+export async function apiDelete(path: string): Promise<void> {
+  const url = new URL(path, API_URL)
+  await parseResponse<void>(
+    await fetch(url, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    }),
+  )
+}
+
 async function parseResponse<T>(response: Response): Promise<T> {
+  if (response.status === 401) {
+    clearSessionToken()
+  }
   if (response.ok) {
+    if (response.status === 204) {
+      return undefined as T
+    }
     return (await response.json()) as T
   }
   let payload: unknown

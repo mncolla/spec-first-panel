@@ -6,15 +6,17 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Query, status
 
 from app.application.image_input import parse_image_write
 from app.application.ports.object_storage import ObjectStorage
-from app.application.use_cases.create_department import create_department
-from app.application.use_cases.create_inquiry import create_inquiry
-from app.application.use_cases.get_department import get_department
-from app.application.use_cases.list_departments import list_departments
-from app.application.use_cases.update_department import update_department
+from app.application.use_cases.auth.get_current_operator import CurrentAuth
+from app.application.use_cases.departments.create_department import create_department
+from app.application.use_cases.departments.create_inquiry import create_inquiry
+from app.application.use_cases.departments.get_department import get_department
+from app.application.use_cases.departments.list_departments import list_departments
+from app.application.use_cases.departments.update_department import update_department
 from app.domain.entities.department import Department
 from app.domain.entities.inquiry import Inquiry
 from app.domain.repositories.department_repository import DepartmentRepository
 from app.infrastructure.container import get_department_repository, get_object_storage
+from app.infrastructure.http.deps import require_operator
 from app.infrastructure.http.schemas import (
     DepartmentDetail,
     DepartmentListItem,
@@ -97,6 +99,7 @@ def create(
     background_tasks: BackgroundTasks,
     repo: DepartmentRepository = Depends(get_department_repository),
     storage: ObjectStorage = Depends(get_object_storage),
+    _: CurrentAuth = Depends(require_operator),
 ) -> DepartmentDetail:
     created = create_department(
         repo,
@@ -125,6 +128,7 @@ def list_items(
     metros_min: Decimal | None = None,
     metros_max: Decimal | None = None,
     repo: DepartmentRepository = Depends(get_department_repository),
+    _: CurrentAuth = Depends(require_operator),
 ) -> DepartmentListResponse:
     page = list_departments(
         repo,
@@ -148,6 +152,7 @@ def list_items(
 def detail(
     department_id: UUID,
     repo: DepartmentRepository = Depends(get_department_repository),
+    _: CurrentAuth = Depends(require_operator),
 ) -> DepartmentDetail:
     return to_detail(get_department(repo, department_id))
 
@@ -159,6 +164,7 @@ def update_item(
     background_tasks: BackgroundTasks,
     repo: DepartmentRepository = Depends(get_department_repository),
     storage: ObjectStorage = Depends(get_object_storage),
+    _: CurrentAuth = Depends(require_operator),
 ) -> DepartmentDetail:
     updated = update_department(
         repo,
@@ -183,6 +189,7 @@ def create_inquiry_item(
     department_id: UUID,
     body: InquiryWrite,
     repo: DepartmentRepository = Depends(get_department_repository),
+    _: CurrentAuth = Depends(require_operator),
 ) -> InquiryDetail:
     inquiry = create_inquiry(
         repo,

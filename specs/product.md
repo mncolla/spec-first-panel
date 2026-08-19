@@ -6,7 +6,7 @@ REST API (FastAPI) + panel (React). Product quality, not a prototype.
 
 ## User
 
-Lebane operator. Auth is out of scope for this delivery.
+Lebane **admin** (unique) and **agentes inmobiliarios**. They share the inventory panel; only admin can create agents.
 
 ## Scope
 
@@ -16,6 +16,7 @@ Lebane operator. Auth is out of scope for this delivery.
 - Images in S3-compatible object storage (MinIO locally)
 - Inquiries on a department (name, email, message, date)
 - Operator records an inquiry from an interested person (panel form + nested POST)
+- Authentication: Bearer JWT session, unique admin + agentes
 - Address autocomplete with persisted coordinates
 - Seed of ≥ 500 departments
 - Panel: list, create, detail/edit, filters
@@ -23,10 +24,11 @@ Lebane operator. Auth is out of scope for this delivery.
 
 **Out**
 
-- Authentication / roles
 - Physical DELETE (delisting is `disponible = false`)
 - Public listing site or top-level `POST /consultas`
 - Inquiries on a delisted department (`disponible = false`)
+- Public signup, password reset, OAuth, a second admin
+- Rate limit
 - Cloud deploy (optional extra, feature 10)
 
 ## Product rules
@@ -48,6 +50,8 @@ The brief only requires a 5-photo cap on create (frontend). The rest is ours:
 | `email` (inquiry) | required, `local@domain.tld` |
 | `mensaje` (inquiry) | required, 1–4000 |
 | Record inquiry | only if `disponible = true` |
+| Auth | Bearer JWT; `/departamentos*` requires a session |
+| `rol` | `admin` (unique) or `agente` |
 
 ## API contract (summary)
 
@@ -59,6 +63,7 @@ HTTP paths and JSON keys follow the brief (Spanish). Code and database are Engli
 - `GET /departamentos/{id}` → `200` (detail) or `404`.
 - `PUT /departamentos/{id}` → `200` (detail) or `404`. Full replacement of editable fields (same body as POST). No PATCH or DELETE.
 - `POST /departamentos/{id}/consultas` → `201` with the created inquiry (`nombre`, `email`, `mensaje`, `fecha`). `404` if the department is missing. `422` if the body is invalid or the department is not available. No PATCH/DELETE on inquiries.
+- `POST /sesion` → `200` `{ email, rol, token }`. `GET /sesion` → `200` or `401`. `DELETE /sesion` → `204` (revokes). `POST /operadores` (admin) → `201` agent. Unauthenticated department calls → `401`. Agent creating operators → `403`.
 
 Pagination: `pagina` (from 1, default 1), `cantidad` (default 20, max 100). Envelope `{ items, pagina, cantidad, total }`. Stable order: `created_at` desc, `id` desc.
 
@@ -67,7 +72,7 @@ Detail: full department + `imagenes` + `consultas`.
 
 `lat` / `lng` are optional (`direccion` text is required). The price filter does not split by currency.
 
-JSON shapes live in [feature 02](features/02-departments-api.md) (departments) and [feature 11](features/11-create-inquiry.md) (inquiry write).
+JSON shapes live in [feature 02](features/02-departments-api.md) (departments), [feature 11](features/11-create-inquiry.md) (inquiry write), and [feature 12](features/12-auth.md) (session).
 
 ## Features
 
@@ -84,6 +89,7 @@ JSON shapes live in [feature 02](features/02-departments-api.md) (departments) a
 | 09 | [Panel detail and edit](features/09-panel-detail.md) | done |
 | 10 | [Quality](features/10-quality.md) | done |
 | 11 | [Record inquiry](features/11-create-inquiry.md) | done |
+| 12 | [Auth and roles](features/12-auth.md) | done |
 
 Statuses: `created` · `in_progress` · `done`. Update this table when a feature changes status.
 
@@ -102,4 +108,4 @@ Commits: [Conventional Commits](https://www.conventionalcommits.org/). Format `t
 | `test` | tests only |
 | `chore` | deps, Compose, tooling |
 
-Scope = module or feature (`infra`, `departments`, `images`, `inquiries`, `address`, `seed`, `panel`). One commit = one coherent change; do not mix features.
+Scope = module or feature (`infra`, `departments`, `images`, `inquiries`, `address`, `seed`, `panel`, `auth`). One commit = one coherent change; do not mix features.
