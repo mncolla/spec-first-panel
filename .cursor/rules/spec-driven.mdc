@@ -1,0 +1,29 @@
+---
+description: Minimal spec-driven workflow for the Lebane panel
+alwaysApply: true
+---
+
+# Spec-driven
+
+Before coding, read `specs/product.md` and `specs/architecture.md`. Work **one** feature from `specs/features/` at a time.
+
+## Cycle
+
+1. Set the feature to `in_progress` and update the table in `product.md`.
+2. Implement against the architecture: hexagonal DDD in the backend (English code; HTTP in Spanish per the brief), `features/` in the frontend, tests in `backend/tests/` and next to frontend features.
+3. Tick checkpoints in the same prompt. Record stable decisions in **Review**.
+4. `done` only if checkpoints are closed and “How to test” works. Update `product.md`.
+5. Commits in [Conventional Commits](https://www.conventionalcommits.org/): `type(scope): summary`. One commit per coherent change; do not mix features.
+
+Types: `feat` `fix` `docs` `refactor` `test` `chore`. Scope = module or feature (`infra`, `departments`, `images`, `panel`). Example: `feat(departments): paginated list with filters`.
+
+## Do not
+
+- Invent auth, DELETE, or extra packages (`consultas/`, `imagenes/`). They are entities in `domain/entities/` (`inquiry.py`, `image.py`).
+- SQL in strings / `text()` for filters. Use the SQLAlchemy query builder.
+- Put one feature’s logic in a global `src/components/`.
+- Mark `done` because it compiles. It has to be testable.
+- Create empty folders (`actions/`, `contexts/` per feature) if unused.
+- Commits without a conventional type (`feat`/`fix`/…) or that mix two features.
+
+If the request conflicts with a `product.md` decision, follow the spec and say so.
