@@ -84,6 +84,7 @@ Español, como el PDF. IDs UUID.
 | GET | `/departamentos` | `200` paginado |
 | GET | `/departamentos/{id}` | `200` o `404` |
 | PUT | `/departamentos/{id}` | `200` o `404` |
+| POST | `/departamentos/{id}/consultas` | `201` consulta |
 
 Paginación: `pagina` ≥ 1, `cantidad` default 20 máx. 100. Filtros: `disponible`, `precio_min`, `precio_max`, `metros_min`, `metros_max`.
 
@@ -123,12 +124,18 @@ Un proyecto, cuatro servicios:
 Variables (referencias entre servicios):
 
 ```
+# MinIO — PORT de runtime no se puede referenciar desde otro servicio.
+# Railway usa 8080 por defecto; MinIO ya escucha en :$PORT.
+MINIO_API_PORT=8080
+MINIO_ROOT_USER=lebane
+MINIO_ROOT_PASSWORD=<≥ 8 caracteres>
+
 # API
 DATABASE_URL=${{Postgres.DATABASE_URL}}
-S3_ENDPOINT=http://${{MinIO.RAILWAY_PRIVATE_DOMAIN}}:${{MinIO.PORT}}
+S3_ENDPOINT=http://${{MinIO.RAILWAY_PRIVATE_DOMAIN}}:${{MinIO.MINIO_API_PORT}}
 S3_PUBLIC_ENDPOINT=https://${{MinIO.RAILWAY_PUBLIC_DOMAIN}}
-S3_ACCESS_KEY=<mismo MINIO_ROOT_USER>
-S3_SECRET_KEY=<mismo MINIO_ROOT_PASSWORD>
+S3_ACCESS_KEY=${{MinIO.MINIO_ROOT_USER}}
+S3_SECRET_KEY=${{MinIO.MINIO_ROOT_PASSWORD}}
 S3_BUCKET=departments
 CORS_ORIGINS=https://${{Frontend.RAILWAY_PUBLIC_DOMAIN}}
 
@@ -139,10 +146,12 @@ VITE_NOMINATIM_CONTACT=<email de contacto Nominatim>
 
 MinIO: `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` (≥ 8 caracteres) y un volume montado en `/data`. Generá dominio público para API, frontend y MinIO (las fotos se cargan desde el browser).
 
+`${{MinIO.PORT}}` queda vacío: Railway solo inyecta `PORT` en runtime dentro de MinIO. Sin puerto, boto3 pega a `:80` y el seed falla. El seed hay que correrlo **dentro** de la API (`railway ssh`); `railway run` ejecuta en tu máquina y no resuelve `*.railway.internal`. El dominio público de MinIO desde SSH suele colgarse (hairpin + `Expect: 100-continue`).
+
 Seed una vez que la API esté arriba:
 
 ```bash
-railway run -s api -- python -m app.seed
+railway ssh -s api -- python -m app.seed
 ```
 
 ## Extra no incluido
