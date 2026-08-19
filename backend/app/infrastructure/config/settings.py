@@ -1,6 +1,15 @@
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def as_sqlalchemy_url(url: str) -> str:
+    if url.startswith("postgres://"):
+        url = "postgresql://" + url.removeprefix("postgres://")
+    if url.startswith("postgresql://"):
+        url = "postgresql+psycopg://" + url.removeprefix("postgresql://")
+    return url
 
 
 class Settings(BaseSettings):
@@ -18,6 +27,13 @@ class Settings(BaseSettings):
     s3_region: str = "us-east-1"
     s3_public_endpoint: str = "http://localhost:9000"
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def _psycopg_url(cls, value: object) -> object:
+        if isinstance(value, str):
+            return as_sqlalchemy_url(value)
+        return value
 
 
 @lru_cache
