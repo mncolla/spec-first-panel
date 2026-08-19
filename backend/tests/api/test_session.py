@@ -117,6 +117,11 @@ def test_admin_creates_agent_agent_cannot_create() -> None:
         assert created.status_code == 201
         assert created.json() == {"email": "agente@lebane.local", "rol": "agente"}
 
+        listed = client.get("/operadores", headers=admin_headers)
+        assert listed.status_code == 200
+        emails = [item["email"] for item in listed.json()["items"]]
+        assert emails == ["admin@lebane.local", "agente@lebane.local"]
+
         forbidden_role = client.post(
             "/operadores",
             headers=admin_headers,
@@ -140,6 +145,8 @@ def test_admin_creates_agent_agent_cannot_create() -> None:
             },
         )
         assert as_agent.status_code == 403
+        assert client.get("/operadores", headers=agent_headers).status_code == 403
+        assert client.get("/operadores").status_code == 401
         listed = client.get("/departamentos", headers=agent_headers)
         assert listed.status_code == 200
     finally:

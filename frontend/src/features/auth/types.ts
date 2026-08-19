@@ -13,3 +13,18 @@ export type SessionWrite = {
   email: string
   clave: string
 }
+
+export type OperatorWrite = {
+  email: string
+  clave: string
+  rol: 'agente'
+}
+
+export type OperatorDetail = {
+  email: string
+  rol: OperatorRole
+}
+
+export type OperatorListResponse = {
+  items: OperatorDetail[]
+}

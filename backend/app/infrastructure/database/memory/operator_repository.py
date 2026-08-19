@@ -20,3 +20,6 @@ class InMemoryOperatorRepository:
 
     def get_by_role(self, role: OperatorRole) -> Operator | None:
         return next((item for item in self._items.values() if item.role is role), None)
+
+    def list(self) -> list[Operator]:
+        return sorted(self._items.values(), key=lambda item: (item.role.value, item.email))

@@ -7,6 +7,7 @@ from app.application.use_cases.auth.get_current_operator import CurrentAuth
 from app.application.use_cases.auth.login import login
 from app.application.use_cases.auth.logout import logout
 from app.application.use_cases.operators.create_operator import create_operator
+from app.application.use_cases.operators.list_operators import list_operators
 from app.domain.entities.operator import OperatorRole
 from app.domain.repositories.operator_repository import OperatorRepository
 from app.domain.repositories.session_repository import SessionRepository
@@ -19,6 +20,7 @@ from app.infrastructure.container import (
 from app.infrastructure.http.deps import require_operator
 from app.infrastructure.http.schemas import (
     OperatorDetail,
+    OperatorListResponse,
     OperatorWrite,
     SessionCreated,
     SessionPublic,
@@ -86,3 +88,14 @@ def create_operator_item(
         role=OperatorRole.from_http(body.rol),
     )
     return OperatorDetail(email=created.email, rol=created.role.to_http())
+
+
+@router.get("/operadores")
+def list_operator_items(
+    auth: CurrentAuth = Depends(require_operator),
+    operators: OperatorRepository = Depends(get_operator_repository),
+) -> OperatorListResponse:
+    items = list_operators(operators, actor=auth.operator)
+    return OperatorListResponse(
+        items=[OperatorDetail(email=item.email, rol=item.role.to_http()) for item in items]
+    )

@@ -6,6 +6,7 @@ from app.application.use_cases.auth.login import login
 from app.application.use_cases.auth.logout import logout
 from app.application.use_cases.operators.bootstrap_admin import bootstrap_admin
 from app.application.use_cases.operators.create_operator import create_operator
+from app.application.use_cases.operators.list_operators import list_operators
 from app.domain.entities.operator import OperatorRole
 from app.domain.exceptions import DomainError
 from app.infrastructure.database.memory.operator_repository import InMemoryOperatorRepository
@@ -99,6 +100,23 @@ def test_create_agent_and_reject_second_admin() -> None:
             password="agentpass",
             role=OperatorRole.AGENT,
         )
+
+
+def test_list_operators_admin_only() -> None:
+    operators, _, hasher, _, admin = _stack()
+    create_operator(
+        operators,
+        hasher,
+        actor=admin,
+        email="agente@lebane.local",
+        password="agentpass",
+        role=OperatorRole.AGENT,
+    )
+    items = list_operators(operators, actor=admin)
+    assert [item.email for item in items] == ["admin@lebane.local", "agente@lebane.local"]
+    agent = next(item for item in items if item.role is OperatorRole.AGENT)
+    with pytest.raises(ForbiddenError):
+        list_operators(operators, actor=agent)
 
 
 def test_bootstrap_is_idempotent() -> None:

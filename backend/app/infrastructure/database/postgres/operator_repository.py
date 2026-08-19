@@ -40,3 +40,7 @@ class PostgresOperatorRepository:
         if row is None:
             return None
         return operator_to_entity(row)
+
+    def list(self) -> list[Operator]:
+        stmt = select(OperatorModel).order_by(OperatorModel.role.asc(), OperatorModel.email.asc())
+        return [operator_to_entity(row) for row in self._session.scalars(stmt)]

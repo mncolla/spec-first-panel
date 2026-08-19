@@ -10,7 +10,7 @@ Small monolith. Hexagonal / layered DDD backend (English code); feature-oriented
 | Persistence | SQLAlchemy 2 (query builder, no SQL strings) + PostgreSQL |
 | Migrations | Alembic |
 | Storage | MinIO (S3-compatible) via boto3 |
-| Front | React 19, Vite, TypeScript, Tailwind 4 |
+| Front | React 19, Vite, TypeScript, Tailwind 4, shadcn/ui |
 | Server state | TanStack Query |
 | Routing | wouter |
 | BE tests | pytest + httpx in `backend/tests/` |
@@ -110,7 +110,8 @@ Rules:
 ```
 frontend/src/
 ├── app/                         # shell, providers, router
-├── lib/                         # api client
+├── components/ui/               # shadcn primitives only
+├── lib/                         # api client, cn()
 └── features/
     ├── departments/
     │   ├── components/
@@ -131,7 +132,7 @@ frontend/src/
 Rules:
 
 - One feature = UI + hooks + services for that domain. Do not leak department logic into a global `src/components/`.
-- Shared `components/` only if used by ≥ 2 features.
+- Shared `components/` only if used by ≥ 2 features, except `components/ui/` (shadcn primitives).
 - No `actions/` folder: mutations live in `hooks/` (React Query) and `services/` (fetch).
 - `contexts/` only for truly global UI state. Prefer Query + props.
 - Broken image: placeholder in the thumbnail/gallery, never a crash.
@@ -142,6 +143,7 @@ Routes:
 |---|---|
 | `/ingresar` | login (public) |
 | `/` | list (session required) |
+| `/operadores` | operator list + create agent (admin) |
 | `/departamentos/nuevo` | create (session required) |
 | `/departamentos/:id` | detail + edit (session required) |
 
@@ -159,7 +161,7 @@ The operator records them on the detail screen. Nested `POST /departamentos/{id}
 
 ## Auth
 
-Bearer JWT (not cookies). One unique `admin` bootstrapped from env; `agente` created by admin via `POST /operadores`. Session rows make `DELETE /sesion` a real revoke. `/health` stays open.
+Bearer JWT (not cookies). One unique `admin` bootstrapped from env; `agente` created by admin via `POST /operadores` (panel route `/operadores`, feature 13). `GET /operadores` lists `{ email, rol }` for admin. Session rows make `DELETE /sesion` a real revoke. `/health` stays open.
 
 ## Errors
 

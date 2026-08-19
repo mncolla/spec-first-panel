@@ -20,6 +20,7 @@ The panel is an internal tool for a real-estate shop: one **admin** and **agente
 - `GET /sesion` → `200` `{ email, rol }` or `401`
 - `DELETE /sesion` → `204`; deletes the session row so the JWT stops working
 - `POST /operadores` (admin) → `201` `{ email, rol }`. Body `rol` must be `agente`
+- `GET /operadores` (admin) → `200` `{ items: [{ email, rol }] }`. Never includes password hashes
 - Protect all `/departamentos*` (GET included). `/health` and seed CLI stay public
 - Panel: `features/auth/`, route `/ingresar`, Bearer on `lib/api.ts`, `401` → login
 - Shell: email, role label, **Cerrar sesión**
@@ -39,12 +40,12 @@ The panel is an internal tool for a real-estate shop: one **admin** and **agente
 
 | Domain | HTTP `rol` | Who | Can |
 |---|---|---|---|
-| `ADMIN` | `admin` | Unique shop owner (env bootstrap) | Full panel + `POST /operadores` |
+| `ADMIN` | `admin` | Unique shop owner (env bootstrap) | Full panel + `GET`/`POST /operadores` |
 | `AGENT` | `agente` | Agente inmobiliario (day-to-day listings and inquiries) | Full panel (departments + consultas). Cannot create operators (`403`) |
 
 `vendedor` is not a role name: the person who already uses this panel is an **agente inmobiliario**.
 
-Unauthenticated → `401`. Authenticated but not allowed (`agente` hitting `POST /operadores`) → `403`.
+Unauthenticated → `401`. Authenticated but not allowed (`agente` hitting `GET`/`POST /operadores`) → `403`.
 
 ## JSON contract
 
@@ -97,6 +98,21 @@ Response `201`: `{ "email": "agente@lebane.local", "rol": "agente" }`.
 
 `rol: "admin"` → `422`. Duplicate email → `422`. Caller is `agente` → `403`. No Bearer → `401`.
 
+### GET /operadores (admin)
+
+Header `Authorization: Bearer <jwt>`. Response `200`:
+
+```json
+{
+  "items": [
+    { "email": "admin@lebane.local", "rol": "admin" },
+    { "email": "agente@lebane.local", "rol": "agente" }
+  ]
+}
+```
+
+Caller is `agente` → `403`. No Bearer → `401`. Password hashes are never returned.
+
 ## Checkpoints
 
 - [x] Operator invariants: email format, non-empty password hash, unique admin
@@ -104,6 +120,7 @@ Response `201`: `{ "email": "agente@lebane.local", "rol": "agente" }`.
 - [x] `require_operator` on every `/departamentos*` handler; tests that omit the header get `401`
 - [x] Bootstrap creates the admin once from env; a second admin cannot be inserted
 - [x] `POST /operadores` as admin → agent; as agent → `403`
+- [x] `GET /operadores` as admin → list; as agent → `403`
 - [x] `GET /health` still `200` without a token
 - [x] Panel `/ingresar`; token in versioned `sessionStorage`; api client sends Bearer
 - [x] RTL: login success lands on the list; 401 on a department call redirects to `/ingresar`

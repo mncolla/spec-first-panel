@@ -63,7 +63,7 @@ HTTP paths and JSON keys follow the brief (Spanish). Code and database are Engli
 - `GET /departamentos/{id}` → `200` (detail) or `404`.
 - `PUT /departamentos/{id}` → `200` (detail) or `404`. Full replacement of editable fields (same body as POST). No PATCH or DELETE.
 - `POST /departamentos/{id}/consultas` → `201` with the created inquiry (`nombre`, `email`, `mensaje`, `fecha`). `404` if the department is missing. `422` if the body is invalid or the department is not available. No PATCH/DELETE on inquiries.
-- `POST /sesion` → `200` `{ email, rol, token }`. `GET /sesion` → `200` or `401`. `DELETE /sesion` → `204` (revokes). `POST /operadores` (admin) → `201` agent. Unauthenticated department calls → `401`. Agent creating operators → `403`.
+- `POST /sesion` → `200` `{ email, rol, token }`. `GET /sesion` → `200` or `401`. `DELETE /sesion` → `204` (revokes). `GET /operadores` (admin) → `{ items: [{ email, rol }] }`. `POST /operadores` (admin) → `201` agent. Unauthenticated department calls → `401`. Agent listing or creating operators → `403`.
 
 Pagination: `pagina` (from 1, default 1), `cantidad` (default 20, max 100). Envelope `{ items, pagina, cantidad, total }`. Stable order: `created_at` desc, `id` desc.
 
@@ -72,7 +72,7 @@ Detail: full department + `imagenes` + `consultas`.
 
 `lat` / `lng` are optional (`direccion` text is required). The price filter does not split by currency.
 
-JSON shapes live in [feature 02](features/02-departments-api.md) (departments), [feature 11](features/11-create-inquiry.md) (inquiry write), and [feature 12](features/12-auth.md) (session).
+JSON shapes live in [feature 02](features/02-departments-api.md) (departments), [feature 11](features/11-create-inquiry.md) (inquiry write), and [feature 12](features/12-auth.md) (session). Admin creates agents from the panel in [feature 13](features/13-create-agent.md).
 
 ## Features
 
@@ -90,6 +90,8 @@ JSON shapes live in [feature 02](features/02-departments-api.md) (departments), 
 | 10 | [Quality](features/10-quality.md) | done |
 | 11 | [Record inquiry](features/11-create-inquiry.md) | done |
 | 12 | [Auth and roles](features/12-auth.md) | done |
+| 13 | [Create agent from the panel](features/13-create-agent.md) | done |
+| 14 | [Panel list and map polish](features/14-panel-polish.md) | created |
 
 Statuses: `created` · `in_progress` · `done`. Update this table when a feature changes status.
 

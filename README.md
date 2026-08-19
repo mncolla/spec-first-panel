@@ -6,6 +6,11 @@ El operador carga, lista, filtra y edita departamentos en venta. El panel pide s
 
 <img width="1920" height="1440" alt="238_1x_shots_so" src="https://github.com/user-attachments/assets/d4a98112-62ab-4658-ad63-fffb3f546702" />
 
+## Demo
+
+https://frontend-production-c4a83.up.railway.app
+
+Panel en Railway. Entrá en `/ingresar` con el admin de `OPERATOR_EMAIL` / `OPERATOR_PASSWORD` de esa API (si no se cambiaron: `admin@lebane.local` / `lebanelebane`). El admin da de alta agentes en **Operadores**.
 
 ## Local
 
@@ -167,4 +172,4 @@ railway ssh -s api -- python -m app.seed
 
 ## Extra no incluido
 
-E2E Playwright. Si hay demo, la URL va acá.
+E2E Playwright.

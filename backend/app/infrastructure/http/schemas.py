@@ -132,6 +132,10 @@ class OperatorDetail(BaseModel):
     rol: str
 
 
+class OperatorListResponse(BaseModel):
+    items: list[OperatorDetail]
+
+
 class DepartmentDetail(BaseModel):
     id: UUID
     titulo: str

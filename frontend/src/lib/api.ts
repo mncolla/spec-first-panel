@@ -26,6 +26,10 @@ export function isUnauthorizedError(error: unknown): boolean {
   return isApiError(error) && error.status === 401
 }
 
+export function isForbiddenError(error: unknown): boolean {
+  return isApiError(error) && error.status === 403
+}
+
 function authHeaders(): HeadersInit {
   const token = getSessionToken()
   return token ? { Authorization: `Bearer ${token}` } : {}

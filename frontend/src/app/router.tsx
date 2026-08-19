@@ -1,4 +1,5 @@
 import { Route, Switch } from 'wouter'
+import { OperatorsPage } from '../features/auth/components/operators-page.tsx'
 import { LoginPage } from '../features/auth/components/login-page.tsx'
 import { RequireSession } from '../features/auth/components/require-session.tsx'
 import { DepartmentCreatePage } from '../features/departments/components/department-create-page.tsx'
@@ -18,6 +19,12 @@ export function AppRouter() {
             <Switch>
               <Route path="/">
                 <DepartmentListPage />
+              </Route>
+              <Route path="/operadores">
+                <OperatorsPage />
+              </Route>
+              <Route path="/operadores/nuevo">
+                <OperatorsPage />
               </Route>
               <Route path="/departamentos/nuevo">
                 <DepartmentCreatePage />

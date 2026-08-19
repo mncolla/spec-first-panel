@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react'
 import { Link } from 'wouter'
+import { SessionMenu } from '../features/auth/components/session-menu.tsx'
 import { useLogout } from '../features/auth/hooks/use-logout.ts'
 import { useSession } from '../features/auth/hooks/use-session.ts'
-import { roleLabel } from '../features/auth/role-label.ts'
 
 export function Shell({ children }: { children: ReactNode }) {
   const session = useSession()
@@ -20,22 +20,15 @@ export function Shell({ children }: { children: ReactNode }) {
           <span className="text-[0.65rem] font-bold tracking-[0.22em] text-ink-soft uppercase">
             CABA
           </span>
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto">
             {operator ? (
-              <p className="hidden text-sm text-ink-soft sm:block">
-                <span className="text-ink">{operator.email}</span>
-                <span className="mx-2 text-line">·</span>
-                {roleLabel(operator.rol)}
-              </p>
+              <SessionMenu
+                email={operator.email}
+                rol={operator.rol}
+                logoutPending={logout.isPending}
+                onLogout={() => logout.mutate()}
+              />
             ) : null}
-            <button
-              type="button"
-              className="btn-ghost"
-              disabled={logout.isPending}
-              onClick={() => logout.mutate()}
-            >
-              Cerrar sesión
-            </button>
           </div>
         </div>
       </header>
