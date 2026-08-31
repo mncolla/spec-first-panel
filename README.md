@@ -1,27 +1,88 @@
-# Lebane — Panel de departamentos
+# Lebane
 
-Prueba técnica: API FastAPI + panel React para una inmobiliaria. Specs en [`specs/product.md`](specs/product.md) y [`specs/architecture.md`](specs/architecture.md).
+Panel interno para una inmobiliaria: cargar, listar, filtrar y editar departamentos en venta. API FastAPI + React.
 
-El operador carga, lista, filtra y edita departamentos en venta. El panel pide sesión (JWT Bearer). No hay DELETE físico: la baja es `disponible = false`.
+Este repo es, sobre todo, una **muestra de spec-driven development**: el producto se escribe antes que el código, se implementa **una feature a la vez**, y `done` no es “compila”.
 
-<img width="1920" height="1440" alt="238_1x_shots_so" src="https://github.com/user-attachments/assets/d4a98112-62ab-4658-ad63-fffb3f546702" />
+![Panel Lebane](docs/panel.png)
 
-## Demo
+**Demo:** [Railway](https://frontend-production-c4a83.up.railway.app) — `admin@lebane.local` / `lebanelebane`
 
-https://frontend-production-c4a83.up.railway.app
+---
 
-Panel en Railway. Entrá en `/ingresar` con el admin de `OPERATOR_EMAIL` / `OPERATOR_PASSWORD` de esa API (si no se cambiaron: `admin@lebane.local` / `lebanelebane`). El admin da de alta agentes en **Operadores**.
+## Cómo trabajo con specs
+
+Tres documentos, no un ticket suelto:
+
+| Doc | Pregunta que responde |
+|---|---|
+| [`specs/product.md`](specs/product.md) | Qué es el producto, In/Out, reglas, contrato HTTP, backlog |
+| [`specs/architecture.md`](specs/architecture.md) | Cómo se construye (capas, stack, convenciones) |
+| [`specs/features/NN-….md`](specs/features/) | Un recorte implementable, con checkpoints y cómo probarlo |
+
+Si una idea choca con `product.md`, gana la spec. No se inventa DELETE físico, un segundo admin, ni paquetes inventados (`consultas/`, `imagenes/`).
+
+El mismo ciclo está en [`.cursor/rules/spec-driven.mdc`](.cursor/rules/spec-driven.mdc): el agente (o yo) lee producto + arquitectura **antes** de tocar código, y trabaja una sola feature.
+
+### Anatomía de una feature
+
+Cada archivo en `specs/features/` tiene:
+
+1. **`status`:** `created` → `in_progress` → `done` (la tabla de `product.md` se actualiza al mismo tiempo)
+2. **Goal** — una frase
+3. **In / Out** — el recorte. Out es tan importante como In
+4. **Checkpoints** — criterios que se tildan en el mismo cambio, no “después”
+5. **How to test** — comando que tiene que pasar
+6. **Review** — decisiones que sobrevivieron al implementar (para no reabrirlas)
+
+`done` solo si los checkpoints están cerrados **y** “How to test” funciona. Compilar no alcanza.
+
+### Ciclo
+
+```
+1. product.md → feature in_progress
+2. Implementar contra architecture.md
+   backend hexagonal (código EN, HTTP ES) · frontend por features/ · tests junto al código
+3. Tildar checkpoints · anotar Review
+4. done + actualizar la tabla
+5. Un commit Conventional Commit por cambio coherente
+   feat(auth): …   no mezclar dos features
+```
+
+Ejemplo: [12-auth](specs/features/12-auth.md) define roles, JWT, `401`/`403` y qué **no** entra (OAuth, segundo admin). El código en `domain/entities/operator.py`, `application/use_cases/auth/` y `features/auth/` sigue ese recorte, no al revés.
+
+El backlog también vive en specs: [14-panel-polish](specs/features/14-panel-polish.md) está `created` (filtros en URL, moneda, mapa en ficha). No es código a medias; es trabajo todavía no empezado.
+
+---
+
+## Qué construyen las specs
+
+Inventario de departamentos. Sesión JWT (un **admin** único + **agentes**). Fotos en MinIO/S3. Consultas de interesados en la ficha. Dirección con Nominatim (coords persistidas). Seed de ≥ 500 filas.
+
+Baja = `disponible = false`. No hay DELETE físico.
+
+Contrato HTTP (español, como el brief). Código y tablas en inglés. El adapter HTTP es la anti-corruption layer.
+
+Detalle de paths y JSON: [`product.md`](specs/product.md) y [feature 02](specs/features/02-departments-api.md).
+
+---
+
+## Stack
+
+FastAPI · Python 3.12 · SQLAlchemy 2 · Alembic · React 19 · Vite · Tailwind 4 · TanStack Query · uv / Vitest.
+
+Backend en capas (`domain` → `application` → `infrastructure`). Frontend por feature (`departments/`, `address/`, `auth/`). Las decisiones de diseño están en [`architecture.md`](specs/architecture.md), no solo en este README.
+
+---
 
 ## Local
-
-Copiá el env de ejemplo y levantá Postgres, MinIO y la API:
 
 ```bash
 cp .env.example .env
 docker compose up --build
 ```
 
-Si Postgres quedó de una cadena Alembic anterior, recreá el volumen: `docker compose down -v && docker compose up --build`.
+Si Postgres quedó de una cadena Alembic vieja: `docker compose down -v && docker compose up --build`.
 
 | Servicio | URL |
 |---|---|
@@ -29,8 +90,7 @@ Si Postgres quedó de una cadena Alembic anterior, recreá el volumen: `docker c
 | OpenAPI | http://localhost:8000/docs |
 | Health | http://localhost:8000/health |
 | Postgres | localhost:5432 (`lebane` / `lebane`) |
-| MinIO API | http://localhost:9000 |
-| MinIO consola | http://localhost:9001 (`lebane` / `lebanelebane`) |
+| MinIO | http://localhost:9000 · consola :9001 (`lebane` / `lebanelebane`) |
 
 Panel:
 
@@ -39,39 +99,16 @@ cp frontend/.env.example frontend/.env
 cd frontend && npm install && npm run dev
 ```
 
-http://localhost:5173 habla con la API en `:8000` (CORS habilitado). `VITE_API_URL` cambia el origin si hace falta.
+http://localhost:5173 → API en `:8000`. Sin sesión abre `/ingresar` (`admin@lebane.local` / `lebanelebane`).
 
-Sin sesión el panel abre `/ingresar`. El admin de desarrollo es `admin@lebane.local` / `lebanelebane` (`OPERATOR_EMAIL` / `OPERATOR_PASSWORD`).
-
-### Seed
-
-Carga ≥ 500 departamentos con fotos en MinIO y consultas. No corre al arrancar.
+Seed (≥ 500 deptos, fotos, consultas). No corre al arrancar:
 
 ```bash
 docker compose exec api python -m app.seed
+docker compose exec api python -m app.seed --force   # borra y vuelve a sembrar
 ```
 
-Si ya hay departamentos (menos de 500), el comando se niega. Para borrar y volver a sembrar:
-
-```bash
-docker compose exec api python -m app.seed --force
-```
-
-## Dirección (Nominatim)
-
-El autocompletado corre **en el navegador**, contra Nominatim/OSM. El backend solo persiste `direccion`, `lat` y `lng`. No hay API key paga.
-
-Por qué Nominatim: cubre CABA sin contrato, sin billing, y el enunciado no pide un proveedor comercial.
-
-Política de uso:
-
-- Identificación: query `email` con `VITE_NOMINATIM_CONTACT` (el browser no deja setear `User-Agent` en `fetch`). Nominatim también ve el `Referer`.
-- Debounce 300 ms, mínimo 3 caracteres, y no más de 1 request por segundo.
-- `countrycodes=ar`, idioma `es`, tope 5 sugerencias.
-
-Sin red, el input muestra error y no crashea. Hay que elegir una sugerencia para mandar coordenadas (texto libre sin seleccionar no alcanza).
-
-## Tests
+### Tests
 
 ```bash
 cd backend && uv sync --group dev && uv run pytest
@@ -79,97 +116,31 @@ cd backend && uv run ruff check .
 cd frontend && npm test
 ```
 
-Los tests de repositorio SQLAlchemy usan la Postgres de Compose, pero cada caso corre en una transacción que se revierte: no borra el seed del panel.
+Los tests de repo SQLAlchemy usan la Postgres de Compose en una transacción que se revierte: no borran el seed.
 
-## Contrato HTTP (resumen)
+---
 
-Español, como el PDF. IDs UUID.
+## Decisiones que salieron de las specs
 
-| Método | Path | Status |
-|---|---|---|
-| POST | `/sesion` | `200` `{ email, rol, token }` |
-| GET | `/sesion` | `200` `{ email, rol }` o `401` |
-| DELETE | `/sesion` | `204` (revoca) |
-| POST | `/operadores` | `201` agente (solo admin) |
-| POST | `/departamentos` | `202` + detalle |
-| GET | `/departamentos` | `200` paginado |
-| GET | `/departamentos/{id}` | `200` o `404` |
-| PUT | `/departamentos/{id}` | `200` o `404` |
-| POST | `/departamentos/{id}/consultas` | `201` consulta |
+- **Validación.** El brief pide tope de 5 fotos en el alta. El resto (título, precio, moneda) vive en dominio. Pydantic = tipos/`422`. `DomainError` también `422`.
+- **Listado liviano.** `selectinload` de fotos, `noload` de consultas, `COUNT(*)` correlacionado. El detalle carga galería + consultas.
+- **Storage.** Puerto `ObjectStorage`. MinIO local, S3-compatible. `POST /departamentos` → `202`; el upload puede ir en `BackgroundTasks`.
+- **Dirección.** Nominatim en el browser (sin API key). El backend solo guarda `direccion`, `lat`, `lng`.
+- **Auth.** JWT Bearer. `jti` = fila en `sessions`. Logout borra la fila. Admin desde env; agentes por `POST /operadores`.
+- **Consultas.** Nested `POST /departamentos/{id}/consultas`. Solo si `disponible`. Comando del aggregate, no un paquete aparte.
 
-Paginación: `pagina` ≥ 1, `cantidad` default 20 máx. 100. Filtros: `disponible`, `precio_min`, `precio_max`, `metros_min`, `metros_max`.
-
-`POST` queda en `202` aunque la fila ya esté persistida: las imágenes se suben a MinIO en `BackgroundTasks`. El body ya trae el recurso. `PUT` es reemplazo completo (mismos campos que el alta). No hay PATCH ni DELETE.
-
-Fotos de escritura: data URL (`data:image/jpeg\|png\|webp\|gif;base64,...`) o URL `http(s)`. Máximo 5.
-
-Detalle de JSON: [`specs/features/02-departments-api.md`](specs/features/02-departments-api.md).
-
-## Decisiones
-
-**Validación.** El enunciado exige tope de 5 fotos en el alta (también en el front, con test RTL). El resto vive en dominio (`titulo` 3–120, `precio` > 0, moneda `USD`/`ARS`, etc.). Pydantic cubre tipos/`422`. `DomainError` también es `422`.
-
-**Storage.** MinIO S3-compatible local. El front manda bytes (data URL) o URLs ya públicas. El backend sube a un bucket `departments` y devuelve URLs con `S3_PUBLIC_ENDPOINT`. Una URL rota no tumba el panel: hay placeholder.
-
-**Acceso a datos.** Backend hexagonal / DDD por capas: entidades y contratos de repositorio en `domain/`, casos de uso en `application/`, adapters por tecnología en `infrastructure/` (`database/postgres`, `storage/s3`, `security`, `http`). El `container` arma las dependencias. HTTP en español, código en inglés. Sin SQL concatenado. Frontend por features (`departments/`, `address/`, `auth/`).
-
-**Ruteo del panel.** wouter. `/ingresar` login, `/` listado, `/departamentos/nuevo` alta, `/departamentos/:id` ficha + edición. Un `401` limpia el token y vuelve al login.
-
-**Sesión.** Bearer JWT (HS256). `DELETE /sesion` borra la fila en `sessions` (el `jti` del token es ese id). Roles: `admin` (único, bootstrap de env) y `agente`. El hasher es PBKDF2 de la stdlib. `/health` y el seed CLI siguen públicos.
-
-**Consultas.** El operador las registra en el detalle (`POST /departamentos/{id}/consultas` → `201`) solo si el departamento está disponible. El seed también carga historial. No hay `POST /consultas` suelto.
-
-## Stack
-
-FastAPI 0.14x, Python 3.12, SQLAlchemy 2, Alembic, React 19, Vite, Tailwind 4, TanStack Query, Vitest.
+---
 
 ## Railway
 
-Un proyecto, cuatro servicios:
+Cuatro servicios: Postgres, MinIO, API (`backend/Dockerfile`), frontend (`frontend/Dockerfile`). `VITE_API_URL` se hornea en el build.
 
-| Servicio | Origen | Notas |
-|---|---|---|
-| Postgres | plugin de Railway | `DATABASE_URL` (el backend lo pasa a `postgresql+psycopg://`) |
-| MinIO | imagen `minio/minio` + volume en `/data` | start: `minio server /data --address :$PORT` |
-| API | `backend/` (`Dockerfile`) | `PORT` lo pone Railway |
-| Frontend | `frontend/` (`Dockerfile`) | `VITE_API_URL` se hornea en el build |
+Seed en el contenedor de la API (`railway ssh`), no con `railway run` (no resuelve `*.railway.internal`).
 
-Variables (referencias entre servicios):
+Variables y trampas de MinIO/`PORT` están comentadas en el historial del repo si hace falta replicar el deploy.
 
-```
-# MinIO — PORT de runtime no se puede referenciar desde otro servicio.
-# Railway usa 8080 por defecto; MinIO ya escucha en :$PORT.
-MINIO_API_PORT=8080
-MINIO_ROOT_USER=lebane
-MINIO_ROOT_PASSWORD=<≥ 8 caracteres>
-
-# API
-DATABASE_URL=${{Postgres.DATABASE_URL}}
-S3_ENDPOINT=http://${{MinIO.RAILWAY_PRIVATE_DOMAIN}}:${{MinIO.MINIO_API_PORT}}
-S3_PUBLIC_ENDPOINT=https://${{MinIO.RAILWAY_PUBLIC_DOMAIN}}
-S3_ACCESS_KEY=${{MinIO.MINIO_ROOT_USER}}
-S3_SECRET_KEY=${{MinIO.MINIO_ROOT_PASSWORD}}
-S3_BUCKET=departments
-CORS_ORIGINS=https://${{Frontend.RAILWAY_PUBLIC_DOMAIN}}
-OPERATOR_EMAIL=admin@lebane.local
-OPERATOR_PASSWORD=<clave ≥ 8>
-SESSION_SECRET=<secreto JWT>
-
-# Frontend (build)
-VITE_API_URL=https://${{Api.RAILWAY_PUBLIC_DOMAIN}}
-VITE_NOMINATIM_CONTACT=<email de contacto Nominatim>
-```
-
-MinIO: `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` (≥ 8 caracteres) y un volume montado en `/data`. Generá dominio público para API, frontend y MinIO (las fotos se cargan desde el browser).
-
-`${{MinIO.PORT}}` queda vacío: Railway solo inyecta `PORT` en runtime dentro de MinIO. Sin puerto, boto3 pega a `:80` y el seed falla. El seed hay que correrlo **dentro** de la API (`railway ssh`); `railway run` ejecuta en tu máquina y no resuelve `*.railway.internal`. El dominio público de MinIO desde SSH suele colgarse (hairpin + `Expect: 100-continue`).
-
-Seed una vez que la API esté arriba:
-
-```bash
-railway ssh -s api -- python -m app.seed
-```
+---
 
 ## Extra no incluido
 
-E2E Playwright.
+E2E Playwright. Pulido de listado/mapa: [feature 14](specs/features/14-panel-polish.md).
