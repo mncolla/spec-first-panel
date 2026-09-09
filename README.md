@@ -1,81 +1,78 @@
-# Lebane
+# spec-first-panel
 
-Panel interno para una inmobiliaria: cargar, listar, filtrar y editar departamentos en venta. API FastAPI + React.
+Este repo explora cómo construir una app fullstack — API en Python (FastAPI) y panel en React — dejando las decisiones en especificaciones y usando el agente de Cursor para implementar contra esas specs, no al revés.
 
-Este repo es, sobre todo, una **muestra de spec-driven development**: el producto se escribe antes que el código, se implementa **una feature a la vez**, y `done` no es “compila”.
+El dominio (un panel de administración de departamentos en venta) es solo el caso. El punto es el método: spec-driven design mínimo, sin un framework encima de Cursor.
 
-![Panel Lebane](docs/panel.png)
+![Panel](docs/panel.png)
 
 **Demo:** [Railway](https://frontend-production-c4a83.up.railway.app) — `admin@lebane.local` / `lebanelebane`
 
----
+## Spec-driven, en este repo
 
-## Cómo trabajo con specs
+Tres capas de documento, cada una con un contrato. Si algo no entra en esa capa, no va ahí.
 
-Tres documentos, no un ticket suelto:
+1. **Producto** — para quién es, qué se considera hecho, qué queda fuera.
+2. **Arquitectura** — stack, capas, contrato HTTP, persistencia. Si cambia el código, primero cambia este archivo.
+3. **Features** — un recorte implementable. No está hecha porque compile: hay que tildar checkpoints y que “How to test” pase.
 
-| Doc | Pregunta que responde |
+El orden de trabajo es **una feature a la vez**, backend + frontend en el mismo incremento cuando la feature lo pide. Si una idea choca con `product.md`, gana la spec.
+
+```text
+backend/   # Python, uv, FastAPI
+frontend/  # Vite, React, TypeScript
+specs/     # producto, arquitectura y features
+```
+
+Cada feature en `specs/features/` tiene `status` (`created` → `in_progress` → `done`), Goal, In/Out, checkpoints, How to test y Review. `done` solo si los checkpoints están cerrados y el comando de prueba funciona.
+
+## Specs
+
+### `specs/product.md`
+
+Intención del producto: usuarios, alcance, reglas, contrato HTTP, backlog. No describe el detalle de implementación de cada pantalla.
+
+### `specs/architecture.md`
+
+Decisiones técnicas estables: capas del backend, organización del frontend, stack, tests, convenciones. Si el código necesita otra forma, primero se actualiza este archivo.
+
+### Features (`specs/features/`)
+
+Las features se numeran y se apuntan entre sí. Se implementan de a una.
+
+| Archivo | Qué cubre |
 |---|---|
-| [`specs/product.md`](specs/product.md) | Qué es el producto, In/Out, reglas, contrato HTTP, backlog |
-| [`specs/architecture.md`](specs/architecture.md) | Cómo se construye (capas, stack, convenciones) |
-| [`specs/features/NN-….md`](specs/features/) | Un recorte implementable, con checkpoints y cómo probarlo |
+| [`01-infrastructure.md`](specs/features/01-infrastructure.md) | Compose local: API, Postgres, MinIO, esqueletos de backend y frontend |
+| [`02-departments-api.md`](specs/features/02-departments-api.md) | CRUD de departamentos, filtros, paginación, DDD en capas |
+| [`03-images.md`](specs/features/03-images.md) | Fotos en MinIO/S3, máximo 5 en el alta, miniatura y totales en el listado |
+| [`04-inquiries.md`](specs/features/04-inquiries.md) | Consultas de interesados en el agregado: detalle y conteo en el listado |
+| [`05-address.md`](specs/features/05-address.md) | Autocompletado de dirección con Nominatim; persiste texto + coordenadas |
+| [`06-seed.md`](specs/features/06-seed.md) | Semilla de ≥ 500 departamentos, fotos y consultas |
+| [`07-panel-list.md`](specs/features/07-panel-list.md) | Tabla paginada, filtros, estados de carga / vacío / error |
+| [`08-panel-create.md`](specs/features/08-panel-create.md) | Formulario de alta, tope de 5 fotos, dirección autocompletada |
+| [`09-panel-detail.md`](specs/features/09-panel-detail.md) | Ficha en ruta propia, galería, edición in-place |
+| [`10-quality.md`](specs/features/10-quality.md) | Tests, README de entrega, listón de calidad |
+| [`11-create-inquiry.md`](specs/features/11-create-inquiry.md) | Registrar una consulta desde el panel (`POST` anidado) |
+| [`12-auth.md`](specs/features/12-auth.md) | Sesión JWT, admin único y agentes, rutas protegidas |
+| [`13-create-agent.md`](specs/features/13-create-agent.md) | El admin lista operadores y crea agentes desde el panel |
+| [`14-panel-polish.md`](specs/features/14-panel-polish.md) | Pulido pendiente: filtros más claros, búsqueda, mapa en la ficha (`created`) |
 
-Si una idea choca con `product.md`, gana la spec. No se inventa DELETE físico, un segundo admin, ni paquetes inventados (`consultas/`, `imagenes/`).
+## Cursor rule
 
-El mismo ciclo está en [`.cursor/rules/spec-driven.mdc`](.cursor/rules/spec-driven.mdc): el agente (o yo) lee producto + arquitectura **antes** de tocar código, y trabaja una sola feature.
+[`.cursor/rules/spec-driven.mdc`](.cursor/rules/spec-driven.mdc) está marcada con `alwaysApply: true`. No genera specs: obliga a leerlas en un orden fijo antes de codear.
 
-### Anatomía de una feature
+1. Leer `specs/product.md`
+2. Leer `specs/architecture.md`
+3. Trabajar **una** feature de `specs/features/`
+4. Pasarla a `in_progress` y actualizar la tabla en `product.md`
+5. Implementar contra la arquitectura (backend en capas, frontend por `features/`, tests junto al código)
+6. Tildar checkpoints en el mismo cambio; anotar decisiones estables en Review
+7. `done` solo si los checkpoints cierran y “How to test” pasa
+8. Un commit Conventional Commit por cambio coherente; no mezclar dos features
 
-Cada archivo en `specs/features/` tiene:
+Si el pedido choca con una decisión de `product.md`, se sigue la spec y se dice.
 
-1. **`status`:** `created` → `in_progress` → `done` (la tabla de `product.md` se actualiza al mismo tiempo)
-2. **Goal** — una frase
-3. **In / Out** — el recorte. Out es tan importante como In
-4. **Checkpoints** — criterios que se tildan en el mismo cambio, no “después”
-5. **How to test** — comando que tiene que pasar
-6. **Review** — decisiones que sobrevivieron al implementar (para no reabrirlas)
-
-`done` solo si los checkpoints están cerrados **y** “How to test” funciona. Compilar no alcanza.
-
-### Ciclo
-
-```
-1. product.md → feature in_progress
-2. Implementar contra architecture.md
-   backend hexagonal (código EN, HTTP ES) · frontend por features/ · tests junto al código
-3. Tildar checkpoints · anotar Review
-4. done + actualizar la tabla
-5. Un commit Conventional Commit por cambio coherente
-   feat(auth): …   no mezclar dos features
-```
-
-Ejemplo: [12-auth](specs/features/12-auth.md) define roles, JWT, `401`/`403` y qué **no** entra (OAuth, segundo admin). El código en `domain/entities/operator.py`, `application/use_cases/auth/` y `features/auth/` sigue ese recorte, no al revés.
-
-El backlog también vive en specs: [14-panel-polish](specs/features/14-panel-polish.md) está `created` (filtros en URL, moneda, mapa en ficha). No es código a medias; es trabajo todavía no empezado.
-
----
-
-## Qué construyen las specs
-
-Inventario de departamentos. Sesión JWT (un **admin** único + **agentes**). Fotos en MinIO/S3. Consultas de interesados en la ficha. Dirección con Nominatim (coords persistidas). Seed de ≥ 500 filas.
-
-Baja = `disponible = false`. No hay DELETE físico.
-
-Contrato HTTP (español, como el brief). Código y tablas en inglés. El adapter HTTP es la anti-corruption layer.
-
-Detalle de paths y JSON: [`product.md`](specs/product.md) y [feature 02](specs/features/02-departments-api.md).
-
----
-
-## Stack
-
-FastAPI · Python 3.12 · SQLAlchemy 2 · Alembic · React 19 · Vite · Tailwind 4 · TanStack Query · uv / Vitest.
-
-Backend en capas (`domain` → `application` → `infrastructure`). Frontend por feature (`departments/`, `address/`, `auth/`). Las decisiones de diseño están en [`architecture.md`](specs/architecture.md), no solo en este README.
-
----
-
-## Local
+## Arranque
 
 ```bash
 cp .env.example .env
@@ -89,8 +86,8 @@ Si Postgres quedó de una cadena Alembic vieja: `docker compose down -v && docke
 | API | http://localhost:8000 |
 | OpenAPI | http://localhost:8000/docs |
 | Health | http://localhost:8000/health |
-| Postgres | localhost:5432 (`lebane` / `lebane`) |
-| MinIO | http://localhost:9000 · consola :9001 (`lebane` / `lebanelebane`) |
+| Postgres | localhost:5432 |
+| MinIO | http://localhost:9000 · consola :9001 |
 
 Panel:
 
@@ -99,9 +96,9 @@ cp frontend/.env.example frontend/.env
 cd frontend && npm install && npm run dev
 ```
 
-http://localhost:5173 → API en `:8000`. Sin sesión abre `/ingresar` (`admin@lebane.local` / `lebanelebane`).
+http://localhost:5173 → API en `:8000`. Sin sesión abre `/ingresar`.
 
-Seed (≥ 500 deptos, fotos, consultas). No corre al arrancar:
+Seed (≥ 500 departamentos). No corre al arrancar:
 
 ```bash
 docker compose exec api python -m app.seed
@@ -116,31 +113,4 @@ cd backend && uv run ruff check .
 cd frontend && npm test
 ```
 
-Los tests de repo SQLAlchemy usan la Postgres de Compose en una transacción que se revierte: no borran el seed.
-
----
-
-## Decisiones que salieron de las specs
-
-- **Validación.** El brief pide tope de 5 fotos en el alta. El resto (título, precio, moneda) vive en dominio. Pydantic = tipos/`422`. `DomainError` también `422`.
-- **Listado liviano.** `selectinload` de fotos, `noload` de consultas, `COUNT(*)` correlacionado. El detalle carga galería + consultas.
-- **Storage.** Puerto `ObjectStorage`. MinIO local, S3-compatible. `POST /departamentos` → `202`; el upload puede ir en `BackgroundTasks`.
-- **Dirección.** Nominatim en el browser (sin API key). El backend solo guarda `direccion`, `lat`, `lng`.
-- **Auth.** JWT Bearer. `jti` = fila en `sessions`. Logout borra la fila. Admin desde env; agentes por `POST /operadores`.
-- **Consultas.** Nested `POST /departamentos/{id}/consultas`. Solo si `disponible`. Comando del aggregate, no un paquete aparte.
-
----
-
-## Railway
-
-Cuatro servicios: Postgres, MinIO, API (`backend/Dockerfile`), frontend (`frontend/Dockerfile`). `VITE_API_URL` se hornea en el build.
-
-Seed en el contenedor de la API (`railway ssh`), no con `railway run` (no resuelve `*.railway.internal`).
-
-Variables y trampas de MinIO/`PORT` están comentadas en el historial del repo si hace falta replicar el deploy.
-
----
-
-## Extra no incluido
-
-E2E Playwright. Pulido de listado/mapa: [feature 14](specs/features/14-panel-polish.md).
+El detalle de stack, capas y contrato HTTP vive en [`specs/architecture.md`](specs/architecture.md), no en este README.
